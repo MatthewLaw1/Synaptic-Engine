@@ -1,6 +1,4 @@
-"""
-Training script for EEG embedding model.
-"""
+"""EEG embedding model training with triplet loss."""
 
 import os
 import glob
@@ -13,20 +11,19 @@ from sklearn.preprocessing import StandardScaler
 import joblib
 import chromadb
 from dotenv import load_dotenv
-from datetime import datetime
 import random
 
 from .eeg_processing import get_feature_vector
 from .models import EEGEmbeddingCNN, TripletLoss
 
-# Load environment variables
 load_dotenv()
 
-# Configuration from environment
+# Training configuration
 EMBEDDING_DIM = int(os.getenv('EMBEDDING_DIM', '300'))
 EPOCHS = int(os.getenv('EPOCHS', '100'))
 BATCH_SIZE = int(os.getenv('BATCH_SIZE', '8'))
 LEARNING_RATE = float(os.getenv('LEARNING_RATE', '1e-3'))
+PATIENCE = int(os.getenv('PATIENCE', '10'))
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Thought labels for classification
@@ -39,114 +36,67 @@ THOUGHT_LABELS = [
 ]
 
 class EEGTripletDataset(Dataset):
-    """Dataset for training with triplet loss."""
-    
     def __init__(self, feature_dict):
-        """
-        Initialize dataset.
-        
-        Args:
-            feature_dict: {label_str: [feature_vector, ...]}
-        """
         super().__init__()
         self.feature_dict = feature_dict
-        self.labels = list(feature_dict.keys())
-        
-        self.total_samples = sum(len(feats) for feats in feature_dict.values())
+        self.valid_labels = [lbl for lbl in feature_dict.keys()
+                           if len(feature_dict[lbl]) >= 2]
+        if not self.valid_labels:
+            raise ValueError("No labels with sufficient samples for triplet training")
 
     def __len__(self):
-        return 999999  # Effectively infinite for random sampling
+        return 10000  # Limited but large enough for training
 
-    def __getitem__(self, idx):
-        """Get a triplet of anchor, positive, and negative samples."""
-        # Select anchor label
-        anchor_label = random.choice(self.labels)
-        positives = self.feature_dict[anchor_label]
+    def __getitem__(self, _):
+        anchor_label = random.choice(self.valid_labels)
+        anchor_feat, positive_feat = random.sample(self.feature_dict[anchor_label], 2)
         
-        # Ensure enough samples for anchor/positive pair
-        if len(positives) < 2:
-            anchor_label = random.choice([lbl for lbl in self.labels 
-                                        if len(self.feature_dict[lbl]) >= 2])
-            positives = self.feature_dict[anchor_label]
-
-        # Get anchor and positive from same label
-        anchor_feat, positive_feat = random.sample(positives, 2)
-        
-        # Get negative from different label
-        neg_label = random.choice([lbl for lbl in self.labels if lbl != anchor_label])
+        neg_label = random.choice([l for l in self.valid_labels if l != anchor_label])
         negative_feat = random.choice(self.feature_dict[neg_label])
         
-        return (anchor_feat, positive_feat, negative_feat, 
+        return (anchor_feat, positive_feat, negative_feat,
                 anchor_label, anchor_label, neg_label)
 
 def load_and_process_data(data_dir):
-    """
-    Load and process EEG data from CSV files.
-    
-    Args:
-        data_dir: Directory containing CSV files
-        
-    Returns:
-        dict: {label: [feature_vector, ...]}
-    """
+    """Load and process EEG data from CSV files."""
     feature_dict = {lbl: [] for lbl in THOUGHT_LABELS}
-    
     csv_files = glob.glob(os.path.join(data_dir, "*.csv"))
-    print(f"Found {len(csv_files)} CSV files in {data_dir}")
+    
+    if not csv_files:
+        raise ValueError(f"No CSV files found in {data_dir}")
+    print(f"Processing {len(csv_files)} CSV files...")
     
     for csv_file in csv_files:
-        # Extract label from filename
-        base = os.path.basename(csv_file)
-        found_label = next((lbl for lbl in THOUGHT_LABELS if lbl in base), None)
-        
+        found_label = next((lbl for lbl in THOUGHT_LABELS
+                          if lbl in os.path.basename(csv_file)), None)
         if not found_label:
-            print(f"Warning: no label found for {csv_file}, skipping")
             continue
             
-        # Load and validate data
-        df = pd.read_csv(csv_file)
-        channels = ["TP9", "AF7", "AF8", "TP10"]
-        if not all(ch in df.columns for ch in channels):
-            print(f"Warning: {csv_file} missing channels {channels}. Skipping.")
+        try:
+            df = pd.read_csv(csv_file)
+            if not all(ch in df.columns for ch in CHANNELS):
+                continue
+                
+            raw_eeg = df.iloc[:2560][CHANNELS].values.T
+            feature_dict[found_label].append(get_feature_vector(raw_eeg))
+        except Exception as e:
+            print(f"Error processing {csv_file}: {e}")
             continue
-            
-        # Process fixed window of samples
-        df = df.iloc[:2560]
-        raw_eeg = df[channels].values.T
-        
-        # Extract features
-        feats = get_feature_vector(raw_eeg)
-        feature_dict[found_label].append(feats)
+    
+    if not any(len(feats) >= 2 for feats in feature_dict.values()):
+        raise ValueError("No label has enough samples for triplet training")
     
     return feature_dict
 
 def scale_features(feature_dict):
-    """
-    Scale all features using StandardScaler.
+    """Scale features using StandardScaler."""
+    all_feats = np.vstack([feat for feats in feature_dict.values() for feat in feats])
+    scaler = StandardScaler().fit(all_feats)
     
-    Args:
-        feature_dict: {label: [feature_vector, ...]}
-        
-    Returns:
-        tuple: (scaled feature_dict, fitted scaler)
-    """
-    # Gather all features for fitting
-    all_feats = []
-    for feats in feature_dict.values():
-        all_feats.extend(feats)
-    all_feats = np.array(all_feats)
-    
-    # Fit and apply scaler
-    scaler = StandardScaler()
-    scaler.fit(all_feats)
-    
-    scaled_dict = {}
-    for label, feats in feature_dict.items():
-        scaled_dict[label] = [
-            scaler.transform(f.reshape(1, -1))[0] for f in feats
-        ]
-    
-    return scaled_dict, scaler
+    return {
+        label: [scaler.transform(f.reshape(1, -1))[0] for f in feats]
+        for label, feats in feature_dict.items()
+    }, scaler
 
 def store_embeddings(model, feature_dict, device=DEVICE):
     """
@@ -170,47 +120,88 @@ def store_embeddings(model, feature_dict, device=DEVICE):
         name=os.getenv('CHROMA_COLLECTION', 'embeddings_eeg')
     )
     
-    # Generate and store embeddings
-    doc_ids = []
-    doc_metadatas = []
-    doc_embeddings = []
-    
-    counter = 0
     model.eval()
+    embeddings_batch = []
     
-    for label in THOUGHT_LABELS:
-        for feat_scaled in feature_dict[label]:
-            # Generate embedding
-            with torch.no_grad():
-                ft = torch.tensor(feat_scaled, dtype=torch.float32).unsqueeze(0).unsqueeze(0).to(device)
-                emb = model(ft)
-            embedding_vec = emb.cpu().numpy().reshape(-1).tolist()
-            
-            # Store metadata
-            doc_ids.append(f"{label}_{counter}")
-            doc_metadatas.append({"thought_label": label})
-            doc_embeddings.append(embedding_vec)
-            counter += 1
+    with torch.no_grad():
+        for label, features in feature_dict.items():
+            for idx, feat in enumerate(features):
+                ft = torch.tensor(feat, dtype=torch.float32).unsqueeze(0).unsqueeze(0).to(device)
+                emb = model(ft).cpu().numpy().reshape(-1).tolist()
+                embeddings_batch.append({
+                    'id': f"{label}_{idx}",
+                    'metadata': {"thought_label": label},
+                    'embedding': emb
+                })
     
-    # Add to collection
+    # Batch insert
     collection.add(
-        embeddings=doc_embeddings,
-        metadatas=doc_metadatas,
-        ids=doc_ids
+        embeddings=[e['embedding'] for e in embeddings_batch],
+        metadatas=[e['metadata'] for e in embeddings_batch],
+        ids=[e['id'] for e in embeddings_batch]
     )
+
+def train_model(model, dataloader, criterion, optimizer, epochs, patience=PATIENCE):
+    """Train model with early stopping."""
+    best_loss = float('inf')
+    patience_counter = 0
     
-    print(f"Stored {counter} embeddings in ChromaDB collection '{collection.name}'")
+    for epoch in range(epochs):
+        model.train()
+        total_loss = 0.0
+        num_batches = 0
+        
+        for batch_idx, (anchor_f, pos_f, neg_f, _, _, _) in enumerate(dataloader):
+            if batch_idx > 50:  # Limit batches per epoch
+                break
+                
+            # Prepare batch
+            anchor_f = anchor_f.float().unsqueeze(1).to(DEVICE)
+            pos_f = pos_f.float().unsqueeze(1).to(DEVICE)
+            neg_f = neg_f.float().unsqueeze(1).to(DEVICE)
+            
+            # Forward pass and loss
+            optimizer.zero_grad()
+            loss = criterion(
+                model(anchor_f),
+                model(pos_f),
+                model(neg_f)
+            )
+            
+            # Backward pass
+            loss.backward()
+            optimizer.step()
+            
+            total_loss += loss.item()
+            num_batches += 1
+        
+        avg_loss = total_loss / num_batches
+        print(f"Epoch {epoch+1}/{epochs}, Loss: {avg_loss:.4f}")
+        
+        # Early stopping
+        if avg_loss < best_loss:
+            best_loss = avg_loss
+            patience_counter = 0
+            # Save best model
+            torch.save(model.state_dict(), "eeg_model.pth")
+        else:
+            patience_counter += 1
+            if patience_counter >= patience:
+                print(f"Early stopping after {epoch+1} epochs")
+                break
+    
+    return best_loss
 
 def main():
-    """Main training function."""
+    """Train EEG embedding model."""
     data_dir = os.getenv('DATA_DIR')
     if not data_dir:
         raise ValueError("DATA_DIR environment variable not set")
     
-    # Load and process data
     print("Loading and processing data...")
     feature_dict = load_and_process_data(data_dir)
     scaled_dict, scaler = scale_features(feature_dict)
+    joblib.dump(scaler, "eeg_scaler.joblib")
     
     # Initialize model and training
     input_dim = next(iter(scaled_dict.values()))[0].shape[0]
@@ -218,54 +209,14 @@ def main():
     optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
     criterion = TripletLoss()
     
-    # Create dataset and dataloader
+    # Train model
     dataset = EEGTripletDataset(scaled_dict)
     dataloader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True)
+    best_loss = train_model(model, dataloader, criterion, optimizer, EPOCHS)
     
-    # Training loop
-    print("Starting training...")
-    for epoch in range(EPOCHS):
-        model.train()
-        total_loss = 0.0
-        num_batches = 0
-        
-        for batch_idx, data in enumerate(dataloader):
-            anchor_f, pos_f, neg_f, _, _, _ = data
-            
-            # Prepare data
-            anchor_f = anchor_f.float().unsqueeze(1).to(DEVICE)
-            pos_f = pos_f.float().unsqueeze(1).to(DEVICE)
-            neg_f = neg_f.float().unsqueeze(1).to(DEVICE)
-            
-            # Forward pass
-            optimizer.zero_grad()
-            anchor_emb = model(anchor_f)
-            pos_emb = model(pos_f)
-            neg_emb = model(neg_f)
-            
-            # Compute loss and update
-            loss = criterion(anchor_emb, pos_emb, neg_emb)
-            loss.backward()
-            optimizer.step()
-            
-            total_loss += loss.item()
-            num_batches += 1
-            
-            if batch_idx > 50:  # Limit batches per epoch
-                break
-        
-        print(f"Epoch {epoch+1}/{EPOCHS}, Loss: {total_loss/num_batches:.4f}")
-    
-    # Save model and scaler
-    print("Saving model and scaler...")
-    torch.save(model.state_dict(), "eeg_model.pth")
-    joblib.dump(scaler, "eeg_scaler.joblib")
-    
-    # Store embeddings
+    print(f"Training completed with best loss: {best_loss:.4f}")
     print("Storing embeddings in ChromaDB...")
     store_embeddings(model, scaled_dict)
-    
-    print("Training completed successfully!")
 
 if __name__ == "__main__":
     main()

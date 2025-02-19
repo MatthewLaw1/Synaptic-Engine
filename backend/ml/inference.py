@@ -1,6 +1,4 @@
-"""
-Inference script for EEG thought classification.
-"""
+"""EEG thought classification inference."""
 
 import os
 import torch
@@ -12,15 +10,16 @@ from dotenv import load_dotenv
 from datetime import datetime
 from google.cloud import storage
 import json
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Tuple
+from functools import lru_cache
 
 from .models import EEGEmbeddingCNN, embed_new_sample
 
-# Load environment variables
 load_dotenv()
 
 EMBEDDING_DIM = int(os.getenv('EMBEDDING_DIM', '300'))
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+CHANNELS = ["TP9", "AF7", "AF8", "TP10"]
 
 THOUGHT_MAPPINGS = {
     'cfm': 'Child cries for mother',
@@ -39,7 +38,6 @@ class CloudStorageManager:
         """
         self.enabled = False
         try:
-            # Create credentials dict from environment variables
             credentials = {
                 "type": "service_account",
                 "project_id": os.getenv("GOOGLE_PROJECT_ID"),
@@ -53,112 +51,70 @@ class CloudStorageManager:
                 "client_x509_cert_url": f"https://www.googleapis.com/robot/v1/metadata/x509/{os.getenv('GOOGLE_CLIENT_EMAIL')}",
                 "universe_domain": "googleapis.com"
             }
-
             self.bucket_name = bucket_name or os.getenv("GOOGLE_BUCKET_NAME", "synapse-ai-bucket")
             self.client = storage.Client.from_service_account_info(credentials)
             self.bucket = self.client.get_bucket(self.bucket_name)
             self.enabled = True
         except Exception as e:
-            print(f"Warning: Cloud Storage not initialized: {str(e)}")
-            print("Storage operations will be skipped")
+            print(f"Warning: Cloud Storage disabled - {str(e)}")
 
     def get_latest_thought(self) -> Optional[Dict[str, Any]]:
-        """Get the latest thought data from cloud storage.
-        
-        Returns:
-            Dict containing the thought data if found, None otherwise
-        """
         if not self.enabled:
             return None
 
         try:
-            # List all blobs in the bucket
             blobs = list(self.bucket.list_blobs())
             if not blobs:
-                print("No files found in bucket")
                 return None
 
-            # Sort by timestamp in the filename (assuming ISO format timestamps)
             latest_blob = max(blobs, key=lambda x: x.name)
-            print(f"Found latest file: {latest_blob.name}")
-            
-            content = latest_blob.download_as_string()
-            data = json.loads(content)
-            
-            # Only process if there's a thought
-            if data.get('thought'):
-                print(f"Found thought: {data['thought']}")
-                return data
-            else:
-                print(f"No thought found in file {latest_blob.name}")
-                return None
-                
+            data = json.loads(latest_blob.download_as_string())
+            return data if data.get('thought') else None
+
         except Exception as e:
-            print(f"Error processing file: {e}")
+            print(f"Error getting latest thought: {e}")
             return None
 
     def store_result(self, thought: str, embedding: np.ndarray) -> None:
-        """Store the classification result in Google Cloud Storage.
-        
-        Args:
-            thought: Classified thought string
-            embedding: Generated embedding array
-        """
         if not self.enabled:
             return
 
         try:
-            # Prepare data
             data = {
                 'thought': thought,
                 'embedding': embedding.tolist(),
                 'timestamp': datetime.now().isoformat()
             }
-            
-            # Create unique blob name
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            blob_name = f"thought_{timestamp}.json"
-            
-            # Upload
-            blob = self.bucket.blob(blob_name)
-            blob.upload_from_string(
+            blob_name = f"thought_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+            self.bucket.blob(blob_name).upload_from_string(
                 json.dumps(data),
                 content_type='application/json'
             )
-            
-            print(f"Result stored in {blob_name}")
-            
         except Exception as e:
-            print(f"Error storing result: {str(e)}")
+            print(f"Error storing result: {e}")
 
-# Global instance for backward compatibility
 storage_manager = CloudStorageManager()
 
-def load_model_and_scaler():
-    """
-    Load the trained model and scaler.
+@lru_cache(maxsize=1)
+def get_chroma_client() -> chromadb.HttpClient:
+    return chromadb.HttpClient(
+        ssl=True,
+        host=os.getenv('CHROMA_HOST'),
+        tenant=os.getenv('CHROMA_TENANT'),
+        database=os.getenv('CHROMA_DATABASE'),
+        headers={'x-chroma-token': os.getenv('CHROMA_TOKEN')}
+    )
+
+def load_model_and_scaler() -> Tuple[EEGEmbeddingCNN, Any]:
+    if not os.path.exists("eeg_model.pth") or not os.path.exists("eeg_scaler.joblib"):
+        raise FileNotFoundError("Model or scaler file not found")
     
-    Returns:
-        tuple: (model, scaler)
-    """
-    if not os.path.exists("eeg_model.pth"):
-        raise FileNotFoundError("Model file 'eeg_model.pth' not found!")
-    if not os.path.exists("eeg_scaler.joblib"):
-        raise FileNotFoundError("Scaler file 'eeg_scaler.joblib' not found!")
-    
-    # Calculate input dimension
-    test_eeg = np.random.randn(4, 2560)
     from .eeg_processing import get_feature_vector
-    test_features = get_feature_vector(test_eeg)
-    input_dim = len(test_features)
+    input_dim = len(get_feature_vector(np.random.randn(4, 2560)))
     
-    # Load model
     model = EEGEmbeddingCNN(input_dim=input_dim, embedding_dim=EMBEDDING_DIM)
     model.load_state_dict(torch.load("eeg_model.pth", map_location=DEVICE))
-    model.to(DEVICE)
-    
-    # Load scaler
-    scaler = joblib.load("eeg_scaler.joblib")
+    model.to(DEVICE).eval()
     
     return model, scaler
 
@@ -181,77 +137,39 @@ def query_chroma_for_embedding(embedding, collection, k=1):
         include=['documents', 'metadatas', 'distances']
     )
 
-def process_eeg_file(file_path, model, scaler):
-    """
-    Process an EEG file and classify the thought.
-    
-    Args:
-        file_path: Path to CSV file containing EEG data
-        model: Loaded EEGEmbeddingCNN model
-        scaler: Loaded StandardScaler
-        
-    Returns:
-        tuple: (thought classification, embedding)
-    """
-    # Load and validate CSV
+def process_eeg_file(file_path: str, model: EEGEmbeddingCNN, scaler: Any) -> Tuple[str, np.ndarray]:
     df = pd.read_csv(file_path)
-    channels = ["TP9", "AF7", "AF8", "TP10"]
-    if not all(ch in df.columns for ch in channels):
-        raise ValueError(f"CSV must contain channels {channels}")
+    if not all(ch in df.columns for ch in CHANNELS):
+        raise ValueError(f"Missing required channels: {CHANNELS}")
     
-    # Process fixed window
-    df = df.iloc[:2560]
-    raw_eeg = df[channels].values.T
-    
-    # Generate embedding
+    raw_eeg = df.iloc[:2560][CHANNELS].values.T
     embedding = embed_new_sample(raw_eeg, model, scaler, device=DEVICE)
     
-    # Query ChromaDB
-    client = chromadb.HttpClient(
-        ssl=True,
-        host=os.getenv('CHROMA_HOST'),
-        tenant=os.getenv('CHROMA_TENANT'),
-        database=os.getenv('CHROMA_DATABASE'),
-        headers={'x-chroma-token': os.getenv('CHROMA_TOKEN')}
-    )
+    client = get_chroma_client()
     collection = client.get_or_create_collection(
         name=os.getenv('CHROMA_COLLECTION', 'embeddings_eeg')
     )
     
-    results = query_chroma_for_embedding(embedding, collection)
+    results = collection.query(
+        query_embeddings=[embedding.tolist()],
+        n_results=1,
+        include=['metadatas']
+    )
     
-    # Get thought classification
     if results and results['metadatas']:
         thought_label = results['metadatas'][0][0]['thought_label']
         return THOUGHT_MAPPINGS.get(thought_label, 'Unknown thought pattern'), embedding
     
     return 'No specific thought pattern detected', embedding
 
-def main(file_path):
-    """
-    Main inference function.
-    
-    Args:
-        file_path: Path to EEG CSV file to process
-    """
+def main(file_path: str) -> Optional[str]:
     try:
-        # Load model and scaler
-        print("Loading model and scaler...")
         model, scaler = load_model_and_scaler()
-        
-        # Process EEG data
-        print("Processing EEG data...")
         thought, embedding = process_eeg_file(file_path, model, scaler)
-        print(f"Classified thought: {thought}")
-        
-        # Store result
-        print("Storing result...")
         storage_manager.store_result(thought, embedding)
-        
         return thought
-        
     except Exception as e:
-        print(f"Error during inference: {str(e)}")
+        print(f"Error during inference: {e}")
         return None
 
 if __name__ == "__main__":
