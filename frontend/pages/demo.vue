@@ -50,6 +50,7 @@
       <p v-if="prompt == null" class="text-gray-400 italic font-medium" :class="pending && 'animate-pulse'">
         Interpret brain activity to put your thoughts into words.
       </p>
+      <p v-else class="text-gray-800">{{ prompt }}</p>
     </StyledDiv>
     <StyledDiv>
       <template #title>
@@ -58,9 +59,13 @@
       <p v-if="video == null" class="text-gray-400 italic font-medium" :class="pending && 'animate-pulse'">
         Interpret brain activity to see a visualization of your thoughts.
       </p>
+      <div v-else class="aspect-video w-full">
+        <video :src="video" controls class="w-full h-full object-cover rounded-md"></video>
+      </div>
     </StyledDiv>
   </div>
 </template>
+
 <script setup lang="ts">
 // Using existing Terra information from last night, simulate real-time 
 // data stream as proof of concept (updates every 15 seconds)
@@ -101,9 +106,34 @@ onMounted(() => {
 const pending = ref(false);
 const prompt = ref(null);
 const video = ref(null);
-async function interpret() {
-  pending.value = true;
-  setInterval(() => {pending.value = false}, 6000);
-}
 
+async function interpret() {
+  try {
+    pending.value = true;
+    
+    // Get latest thought interpretation
+    const thoughtResponse = await fetch('http://localhost:8000/api/latest-thought');
+    if (!thoughtResponse.ok) {
+      throw new Error('Failed to get thought interpretation');
+    }
+    const thoughtData = await thoughtResponse.json();
+    prompt.value = thoughtData.thought;
+    
+    // Generate video
+    const videoResponse = await fetch('http://localhost:8000/api/generate-video', {
+      method: 'POST'
+    });
+    if (!videoResponse.ok) {
+      throw new Error('Failed to generate video');
+    }
+    const videoData = await videoResponse.json();
+    video.value = videoData.video_url;
+    
+  } catch (error) {
+    console.error('Error:', error);
+    // You might want to show an error message to the user here
+  } finally {
+    pending.value = false;
+  }
+}
 </script>
