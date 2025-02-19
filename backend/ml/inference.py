@@ -37,24 +37,30 @@ class CloudStorageManager:
         Args:
             bucket_name: Name of the GCS bucket (optional, defaults to env var)
         """
-        # Create credentials dict from environment variables
-        credentials = {
-            "type": "service_account",
-            "project_id": os.getenv("GOOGLE_PROJECT_ID"),
-            "private_key_id": os.getenv("GOOGLE_PRIVATE_KEY_ID"),
-            "private_key": os.getenv("GOOGLE_PRIVATE_KEY"),
-            "client_email": os.getenv("GOOGLE_CLIENT_EMAIL"),
-            "client_id": os.getenv("GOOGLE_CLIENT_ID"),
-            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-            "token_uri": "https://oauth2.googleapis.com/token",
-            "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-            "client_x509_cert_url": f"https://www.googleapis.com/robot/v1/metadata/x509/{os.getenv('GOOGLE_CLIENT_EMAIL')}",
-            "universe_domain": "googleapis.com"
-        }
+        self.enabled = False
+        try:
+            # Create credentials dict from environment variables
+            credentials = {
+                "type": "service_account",
+                "project_id": os.getenv("GOOGLE_PROJECT_ID"),
+                "private_key_id": os.getenv("GOOGLE_PRIVATE_KEY_ID"),
+                "private_key": os.getenv("GOOGLE_PRIVATE_KEY"),
+                "client_email": os.getenv("GOOGLE_CLIENT_EMAIL"),
+                "client_id": os.getenv("GOOGLE_CLIENT_ID"),
+                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                "token_uri": "https://oauth2.googleapis.com/token",
+                "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+                "client_x509_cert_url": f"https://www.googleapis.com/robot/v1/metadata/x509/{os.getenv('GOOGLE_CLIENT_EMAIL')}",
+                "universe_domain": "googleapis.com"
+            }
 
-        self.bucket_name = bucket_name or os.getenv("GOOGLE_BUCKET_NAME", "synapse-ai-bucket")
-        self.client = storage.Client.from_service_account_info(credentials)
-        self.bucket = self.client.get_bucket(self.bucket_name)
+            self.bucket_name = bucket_name or os.getenv("GOOGLE_BUCKET_NAME", "synapse-ai-bucket")
+            self.client = storage.Client.from_service_account_info(credentials)
+            self.bucket = self.client.get_bucket(self.bucket_name)
+            self.enabled = True
+        except Exception as e:
+            print(f"Warning: Cloud Storage not initialized: {str(e)}")
+            print("Storage operations will be skipped")
 
     def get_latest_thought(self) -> Optional[Dict[str, Any]]:
         """Get the latest thought data from cloud storage.
@@ -62,17 +68,20 @@ class CloudStorageManager:
         Returns:
             Dict containing the thought data if found, None otherwise
         """
-        # List all blobs in the bucket
-        blobs = list(self.bucket.list_blobs())
-        if not blobs:
-            print("No files found in bucket")
+        if not self.enabled:
             return None
 
-        # Sort by timestamp in the filename (assuming ISO format timestamps)
-        latest_blob = max(blobs, key=lambda x: x.name)
-        print(f"Found latest file: {latest_blob.name}")
-        
         try:
+            # List all blobs in the bucket
+            blobs = list(self.bucket.list_blobs())
+            if not blobs:
+                print("No files found in bucket")
+                return None
+
+            # Sort by timestamp in the filename (assuming ISO format timestamps)
+            latest_blob = max(blobs, key=lambda x: x.name)
+            print(f"Found latest file: {latest_blob.name}")
+            
             content = latest_blob.download_as_string()
             data = json.loads(content)
             
@@ -85,7 +94,7 @@ class CloudStorageManager:
                 return None
                 
         except Exception as e:
-            print(f"Error processing file {latest_blob.name}: {e}")
+            print(f"Error processing file: {e}")
             return None
 
     def store_result(self, thought: str, embedding: np.ndarray) -> None:
@@ -95,6 +104,9 @@ class CloudStorageManager:
             thought: Classified thought string
             embedding: Generated embedding array
         """
+        if not self.enabled:
+            return
+
         try:
             # Prepare data
             data = {

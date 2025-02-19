@@ -1,0 +1,29 @@
+# Environment files
+.env
+.env.local
+.env.*.local
+backend/.env
+backend/.env.local
+frontend/.env
+frontend/.env.local
+
+# Keep example env files
+!example.env
+!backend/example.env
+!frontend/example.env
+
+# OS files
+.DS_Store
+backend/.DS_Store
+frontend/.DS_Store
+
+# Local storage
+backend/local_storage/
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/

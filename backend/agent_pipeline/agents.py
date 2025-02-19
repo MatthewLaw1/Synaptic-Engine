@@ -4,34 +4,46 @@ Each agent is responsible for a specific task in converting a simple thought
 into a detailed video prompt.
 """
 
-import os
-import re
-import math
-import numpy as np
-from langchain_openai import ChatOpenAI
-from langchain_core.prompts import PromptTemplate
-from typing import Dict, Any, List, Optional
 import threading
-import time
-from cloud_storage import storage_manager
+from typing import Dict, Any, List, Optional
+from langchain_core.prompts import PromptTemplate
+from langchain_core.language_models import BaseLanguageModel
+from .base import BaseLLMPipeline
 
 class ThoughtAgent:
     """Base agent for processing thoughts."""
     
-    def __init__(self, llm, prompt_template: str):
+    def __init__(self, llm: BaseLanguageModel, prompt_template: str):
+        """Initialize the thought agent.
+        
+        Args:
+            llm: Language model to use
+            prompt_template: Template for the prompt
+        """
         self.llm = llm
         self.prompt = PromptTemplate.from_template(prompt_template)
         
     def process(self, **kwargs) -> str:
-        """Process input using the prompt template and LLM."""
+        """Process input using the prompt template and LLM.
+        
+        Args:
+            **kwargs: Arguments for the prompt template
+            
+        Returns:
+            Processed response from the LLM
+        """
         chain = self.prompt | self.llm
         return chain.invoke(kwargs).content
 
 class ExpansionAgents:
     """First layer: Expansion agents add details, steps, and emotions."""
     
-    def __init__(self, llm):
-        """Initialize expansion agents with language model."""
+    def __init__(self, llm: BaseLanguageModel):
+        """Initialize expansion agents with language model.
+        
+        Args:
+            llm: Language model to use
+        """
         self.visual_agent = ThoughtAgent(
             llm=llm,
             prompt_template="Enhance this thought with vivid sensory and contextual details:\n{thought}\nFocus on sights, sounds, textures, and environmental context."
@@ -56,28 +68,29 @@ class ExpansionAgents:
         Returns:
             Dict containing the processed results
         """
-        # Get results from each agent
-        visual_details = self.visual_agent.process(thought=thought)
-        sequence_steps = self.sequence_agent.process(thought=thought)
-        emotional_elements = self.emotion_agent.process(thought=thought)
-        
         return {
-            'visual': visual_details,
-            'sequence': sequence_steps,
-            'emotional': emotional_elements
+            'visual': self.visual_agent.process(thought=thought),
+            'sequence': self.sequence_agent.process(thought=thought),
+            'emotional': self.emotion_agent.process(thought=thought)
         }
 
 class EvaluatorAgent:
     """Second layer: Synthesizes expansion results based on research-backed 
     stress level correlations."""
     
-    def __init__(self, llm, expansion_agents):
+    def __init__(self, llm: BaseLanguageModel, expansion_agents: ExpansionAgents):
+        """Initialize the evaluator agent.
+        
+        Args:
+            llm: Language model to use
+            expansion_agents: ExpansionAgents instance
+        """
         self.llm = llm
         self.expansion_agents = expansion_agents
         self._latest_result = None
         self._lock = threading.Lock()
     
-    def _calculate_stress_weights(self, stress_level):
+    def _calculate_stress_weights(self, stress_level: float) -> Dict[str, float]:
         """Calculate weights based on research about stress's effect on cognition.
         
         Research shows:
@@ -86,22 +99,17 @@ class EvaluatorAgent:
         - High stress enhances sequential processing for action-readiness
         
         Args:
-            stress_level (float): 0-100 stress level
+            stress_level: 0-100 stress level
             
         Returns:
-            dict: Weights for each perspective
+            Dict of weights for each perspective
         """
         # Normalize stress level to 0-1
         stress = stress_level / 100.0
         
-        # Research-backed weight calculations:
-        # 1. Emotional processing increases with stress due to amygdala activation
+        # Research-backed weight calculations
         emotional_weight = 0.2 + (0.4 * stress)  # 0.2-0.6 range
-        
-        # 2. Visual detail processing decreases with stress due to attentional tunneling
-        visual_weight = 0.5 - (0.3 * stress)  # 0.5-0.2 range
-        
-        # 3. Sequential processing increases with stress for action-readiness
+        visual_weight = 0.5 - (0.3 * stress)    # 0.5-0.2 range
         sequence_weight = 0.3 + (0.2 * stress)  # 0.3-0.5 range
         
         # Normalize weights to sum to 1
@@ -112,15 +120,15 @@ class EvaluatorAgent:
             'sequence': sequence_weight / total
         }
     
-    def evaluate(self, expansion_results, stress_level):
+    def evaluate(self, expansion_results: Dict[str, str], stress_level: float) -> str:
         """Evaluate and synthesize the three perspectives based on stress level.
         
         Args:
-            expansion_results (dict): Results from the expansion agents
-            stress_level (float): User's stress level (0-100)
+            expansion_results: Results from the expansion agents
+            stress_level: User's stress level (0-100)
         
         Returns:
-            str: Synthesized description
+            Synthesized description
         """
         weights = self._calculate_stress_weights(stress_level)
         
@@ -161,23 +169,37 @@ class EvaluatorAgent:
         
         return result.strip()
 
-class VideoPromptGenerator:
+class VideoPromptGenerator(BaseLLMPipeline):
     """Third layer: Converts synthesized description into a structured
     video generation prompt."""
     
-    def __init__(self, llm, evaluator_agent):
-        self.llm = llm
+    def __init__(
+        self,
+        evaluator_agent: EvaluatorAgent,
+        model_name: Optional[str] = None,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None
+    ):
+        """Initialize the video prompt generator.
+        
+        Args:
+            evaluator_agent: EvaluatorAgent instance
+            model_name: Optional model name override
+            temperature: Optional temperature override
+            max_tokens: Optional max tokens override
+        """
+        super().__init__(model_name, temperature, max_tokens)
         self.evaluator_agent = evaluator_agent
     
-    def generate_prompt(self, synthesized_description, stress_level):
+    def generate_prompt(self, synthesized_description: str, stress_level: float) -> str:
         """Generate a clean, ready-to-use video generation prompt.
         
         Args:
-            synthesized_description (str): Output from EvaluatorAgent
-            stress_level (float): User's stress level (0-100)
+            synthesized_description: Output from EvaluatorAgent
+            stress_level: User's stress level (0-100)
             
         Returns:
-            str: Clean prompt ready for video generation service
+            Clean prompt ready for video generation service
         """
         template = """Convert this scene into a cinematic video generation prompt:
 
@@ -209,14 +231,14 @@ class VideoPromptGenerator:
             stress_level=stress_level
         )
     
-    def format_for_luma(self, prompt):
+    def format_for_luma(self, prompt: str) -> str:
         """Format the prompt for Luma API.
         
         Args:
-            prompt (str): Video generation prompt
+            prompt: Video generation prompt
             
         Returns:
-            str: Formatted prompt ready for Luma API
+            Formatted prompt ready for Luma API
         """
         # Clean up any extra whitespace or newlines
         prompt = prompt.strip()
