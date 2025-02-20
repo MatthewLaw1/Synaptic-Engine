@@ -118,23 +118,18 @@ def load_model_and_scaler() -> Tuple[EEGEmbeddingCNN, Any]:
     
     return model, scaler
 
-def query_chroma_for_embedding(embedding, collection, k=1):
-    """
-    Query ChromaDB for similar embeddings.
-    
-    Args:
-        embedding: numpy array of shape (embedding_dim,)
-        collection: ChromaDB collection
-        k: Number of results to return
-        
-    Returns:
-        dict: ChromaDB query results
-    """
-    query_emb = [embedding.tolist()]
+@lru_cache(maxsize=128)
+def query_chroma_for_embedding(embedding_key: str) -> Dict[str, Any]:
+    """Query ChromaDB with caching for similar embeddings."""
+    embedding = joblib.load(f"embeddings/{embedding_key}.joblib")
+    client = get_chroma_client()
+    collection = client.get_or_create_collection(
+        name=os.getenv('CHROMA_COLLECTION', 'embeddings_eeg')
+    )
     return collection.query(
-        query_embeddings=query_emb,
-        n_results=k,
-        include=['documents', 'metadatas', 'distances']
+        query_embeddings=[embedding.tolist()],
+        n_results=1,
+        include=['metadatas']
     )
 
 def process_eeg_file(file_path: str, model: EEGEmbeddingCNN, scaler: Any) -> Tuple[str, np.ndarray]:
@@ -145,16 +140,12 @@ def process_eeg_file(file_path: str, model: EEGEmbeddingCNN, scaler: Any) -> Tup
     raw_eeg = df.iloc[:2560][CHANNELS].values.T
     embedding = embed_new_sample(raw_eeg, model, scaler, device=DEVICE)
     
-    client = get_chroma_client()
-    collection = client.get_or_create_collection(
-        name=os.getenv('CHROMA_COLLECTION', 'embeddings_eeg')
-    )
+    # Cache embedding for future queries
+    os.makedirs("embeddings", exist_ok=True)
+    embedding_key = datetime.now().strftime('%Y%m%d_%H%M%S')
+    joblib.dump(embedding, f"embeddings/{embedding_key}.joblib")
     
-    results = collection.query(
-        query_embeddings=[embedding.tolist()],
-        n_results=1,
-        include=['metadatas']
-    )
+    results = query_chroma_for_embedding(embedding_key)
     
     if results and results['metadatas']:
         thought_label = results['metadatas'][0][0]['thought_label']
