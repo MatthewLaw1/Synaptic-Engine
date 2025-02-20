@@ -7,6 +7,9 @@
 - [ ] Implement data augmentation for EEG signals
 - [ ] Add unit tests for core ML functions
 - [ ] add recursive funneling on TID
+- [ ] add interface setup on muse2
+- [ ] push cuda cluster setup
+
 
 
 ## Model Improvements
