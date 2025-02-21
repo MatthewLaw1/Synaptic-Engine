@@ -1,171 +1,383 @@
-"""EEG thought classification inference."""
+"""Enhanced inference pipeline with feature analysis and advanced processing."""
 
-import os
 import torch
-import joblib
 import numpy as np
-import pandas as pd
-import chromadb
-from dotenv import load_dotenv
+from typing import Dict, List, Optional, Tuple
+from dataclasses import dataclass
+from .eeg_processing import EEGProcessor, extract_features as extract_eeg_features
+from .biometric_processing import BiometricProcessor
+from .sentiment_analysis import SentimentPredictor
+from .models import IterativeModelStack
+from .feature_analysis import FeatureAnalyzer
+import logging
+import os
 from datetime import datetime
-from google.cloud import storage
-import json
-from typing import Optional, Dict, Any, Tuple
-from functools import lru_cache
 
-from .models import EEGEmbeddingCNN, embed_new_sample
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-load_dotenv()
+@dataclass
+class ThoughtPrediction:
+    """Container for thought prediction results."""
+    thought_id: int
+    confidence: float
+    emotional_state: Optional[str] = None
+    sentiment_scores: Optional[Dict[str, float]] = None
+    feature_importance: Optional[Dict[str, float]] = None
+    signal_quality: Optional[Dict[str, float]] = None
 
-EMBEDDING_DIM = int(os.getenv('EMBEDDING_DIM', '300'))
-DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-CHANNELS = ["TP9", "AF7", "AF8", "TP10"]
-
-THOUGHT_MAPPINGS = {
-    'cfm': 'Child cries for mother',
-    'dhp': 'Doctor Helps Patient',
-    'sab': 'Sister argues with brother',
-    'fbh': 'Fire burns house',
-    'null': 'No specific thought pattern detected'
-}
-
-class CloudStorageManager:
-    def __init__(self, bucket_name: str = None):
-        """Initialize the Cloud Storage Manager.
+class ThoughtInferencePipeline:
+    """Enhanced pipeline for thought classification with feature analysis."""
+    
+    def __init__(
+        self,
+        model_stack: IterativeModelStack,
+        sentiment_predictor: Optional[SentimentPredictor] = None,
+        thought_labels: Optional[List[str]] = None,
+        device: str = 'cuda' if torch.cuda.is_available() else 'cpu',
+        feature_names: Optional[List[str]] = None
+    ):
+        self.model_stack = model_stack
+        self.sentiment_predictor = sentiment_predictor
+        self.biometric_processor = BiometricProcessor()
+        self.eeg_processor = EEGProcessor()
+        self.thought_labels = thought_labels
+        self.device = device
+        self.feature_names = feature_names
+        
+        # Set models to evaluation mode
+        self.model_stack.eval()
+        if self.sentiment_predictor:
+            self.sentiment_predictor.model.eval()
+        
+        # Initialize feature analyzer if feature names are provided
+        self.feature_analyzer = (
+            FeatureAnalyzer(
+                eeg_feature_names=[n for n in feature_names if 'eeg' in n.lower()],
+                bio_feature_names=[n for n in feature_names if 'bio' in n.lower()],
+                device=device
+            )
+            if feature_names is not None else None
+        )
+    
+    def preprocess_signals(
+        self,
+        eeg_data: np.ndarray,
+        rr_intervals: Optional[List[float]] = None,
+        blood_pressure: Optional[Tuple[np.ndarray, np.ndarray]] = None,
+        gsr_signal: Optional[np.ndarray] = None,
+        resp_signal: Optional[np.ndarray] = None
+    ) -> Tuple[np.ndarray, np.ndarray, Dict[str, float]]:
+        """Preprocess EEG and biometric signals with quality checks."""
+        # Process EEG signal
+        processed_eeg = self.eeg_processor.preprocess_signal(eeg_data)
+        
+        # Check EEG signal quality
+        eeg_quality = {}
+        for channel_idx, channel in enumerate(processed_eeg):
+            is_good, metrics = self.eeg_processor.check_signal_quality(channel)
+            eeg_quality[f'channel_{channel_idx}'] = metrics
+            
+            if not is_good:
+                logger.warning(
+                    f"Poor signal quality detected in channel {channel_idx}: {metrics}"
+                )
+        
+        # Extract EEG features
+        eeg_features = extract_eeg_features(
+            processed_eeg,
+            return_feature_names=False
+        )
+        
+        # Extract biometric features
+        bio_features = self.biometric_processor.extract_all_features(
+            rr_intervals=rr_intervals,
+            blood_pressure=blood_pressure,
+            gsr_signal=gsr_signal,
+            resp_signal=resp_signal
+        )
+        
+        # Convert biometric features dict to array
+        bio_array = np.array(list(bio_features.values()))
+        
+        return eeg_features, bio_array, eeg_quality
+    
+    def analyze_sentiment(
+        self,
+        eeg_features: np.ndarray,
+        bio_features: np.ndarray
+    ) -> Optional[Dict[str, float]]:
+        """Analyze emotional state using sentiment predictor."""
+        if self.sentiment_predictor is None:
+            return None
+            
+        return self.sentiment_predictor.predict(
+            eeg_features,
+            bio_features,
+            return_emotional_state=True
+        )
+    
+    def analyze_feature_importance(
+        self,
+        eeg_features: np.ndarray,
+        bio_features: np.ndarray
+    ) -> Optional[Dict[str, float]]:
+        """Analyze feature importance for current prediction."""
+        if self.feature_analyzer is None or self.feature_names is None:
+            return None
+        
+        # Combine features
+        combined_features = np.hstack([eeg_features, bio_features])
+        
+        # Get SHAP values for current features
+        shap_values = self.feature_analyzer.analyze_shap_values(
+            self.model_stack.eeg_embedder,
+            torch.FloatTensor(combined_features).unsqueeze(0)
+        )
+        
+        # Create importance dictionary
+        importance_dict = {
+            name: float(abs(value))
+            for name, value in zip(self.feature_names, shap_values[0])
+        }
+        
+        return importance_dict
+    
+    def predict(
+        self,
+        eeg_data: np.ndarray,
+        rr_intervals: Optional[List[float]] = None,
+        blood_pressure: Optional[Tuple[np.ndarray, np.ndarray]] = None,
+        gsr_signal: Optional[np.ndarray] = None,
+        resp_signal: Optional[np.ndarray] = None,
+        top_k: int = 5,
+        sentiment_threshold: float = 0.5,
+        confidence_threshold: float = 0.3,
+        save_analysis: bool = False,
+        analysis_dir: Optional[str] = None
+    ) -> List[ThoughtPrediction]:
+        """
+        Enhanced thought prediction pipeline with feature analysis.
         
         Args:
-            bucket_name: Name of the GCS bucket (optional, defaults to env var)
+            eeg_data: Raw EEG signal array
+            rr_intervals: Optional RR intervals for HRV analysis
+            blood_pressure: Optional tuple of (systolic, diastolic) arrays
+            gsr_signal: Optional galvanic skin response signal
+            resp_signal: Optional respiratory signal
+            top_k: Number of top predictions to return
+            sentiment_threshold: Threshold for sentiment-based filtering
+            confidence_threshold: Minimum confidence for predictions
+            save_analysis: Whether to save analysis results
+            analysis_dir: Directory to save analysis results
+            
+        Returns:
+            List of ThoughtPrediction objects
         """
-        self.enabled = False
-        try:
-            credentials = {
-                "type": "service_account",
-                "project_id": os.getenv("GOOGLE_PROJECT_ID"),
-                "private_key_id": os.getenv("GOOGLE_PRIVATE_KEY_ID"),
-                "private_key": os.getenv("GOOGLE_PRIVATE_KEY"),
-                "client_email": os.getenv("GOOGLE_CLIENT_EMAIL"),
-                "client_id": os.getenv("GOOGLE_CLIENT_ID"),
-                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-                "token_uri": "https://oauth2.googleapis.com/token",
-                "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-                "client_x509_cert_url": f"https://www.googleapis.com/robot/v1/metadata/x509/{os.getenv('GOOGLE_CLIENT_EMAIL')}",
-                "universe_domain": "googleapis.com"
-            }
-            self.bucket_name = bucket_name or os.getenv("GOOGLE_BUCKET_NAME", "synapse-ai-bucket")
-            self.client = storage.Client.from_service_account_info(credentials)
-            self.bucket = self.client.get_bucket(self.bucket_name)
-            self.enabled = True
-        except Exception as e:
-            print(f"Warning: Cloud Storage disabled - {str(e)}")
-
-    def get_latest_thought(self) -> Optional[Dict[str, Any]]:
-        if not self.enabled:
-            return None
-
-        try:
-            blobs = list(self.bucket.list_blobs())
-            if not blobs:
-                return None
-
-            latest_blob = max(blobs, key=lambda x: x.name)
-            data = json.loads(latest_blob.download_as_string())
-            return data if data.get('thought') else None
-
-        except Exception as e:
-            print(f"Error getting latest thought: {e}")
-            return None
-
-    def store_result(self, thought: str, embedding: np.ndarray) -> None:
-        if not self.enabled:
-            return
-
-        try:
-            data = {
-                'thought': thought,
-                'embedding': embedding.tolist(),
-                'timestamp': datetime.now().isoformat()
-            }
-            blob_name = f"thought_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-            self.bucket.blob(blob_name).upload_from_string(
-                json.dumps(data),
-                content_type='application/json'
+        # Preprocess signals
+        logger.info("Preprocessing signals...")
+        eeg_features, bio_features, signal_quality = self.preprocess_signals(
+            eeg_data,
+            rr_intervals,
+            blood_pressure,
+            gsr_signal,
+            resp_signal
+        )
+        
+        # Analyze sentiment if available
+        sentiment_results = None
+        if self.sentiment_predictor is not None:
+            logger.info("Analyzing sentiment...")
+            sentiment_results = self.analyze_sentiment(eeg_features, bio_features)
+            
+            # Check sentiment confidence
+            sentiment_confidence = max(
+                abs(sentiment_results['valence']),
+                abs(sentiment_results['arousal'])
             )
-        except Exception as e:
-            print(f"Error storing result: {e}")
+            if sentiment_confidence < sentiment_threshold:
+                logger.warning(
+                    f"Low sentiment confidence: {sentiment_confidence:.3f}"
+                )
+        
+        # Analyze feature importance
+        feature_importance = self.analyze_feature_importance(
+            eeg_features,
+            bio_features
+        )
+        
+        # Get predictions from model stack
+        logger.info("Running thought classification...")
+        predictions = self.model_stack.predict(
+            eeg_features,
+            bio_features,
+            top_k=top_k
+        )
+        
+        # Format results
+        results = []
+        for thought_idx, confidence in zip(
+            predictions['thought_indices'],
+            predictions['confidence_scores']
+        ):
+            # Skip low confidence predictions
+            if confidence < confidence_threshold:
+                continue
+                
+            thought_pred = ThoughtPrediction(
+                thought_id=thought_idx,
+                confidence=confidence,
+                emotional_state=sentiment_results.get('emotional_state')
+                    if sentiment_results else None,
+                sentiment_scores={
+                    'valence': sentiment_results['valence'],
+                    'arousal': sentiment_results['arousal']
+                } if sentiment_results else None,
+                feature_importance=feature_importance,
+                signal_quality=signal_quality
+            )
+            results.append(thought_pred)
+        
+        # Save analysis if requested
+        if save_analysis and analysis_dir:
+            self._save_analysis(
+                analysis_dir,
+                eeg_features,
+                bio_features,
+                results,
+                signal_quality
+            )
+        
+        return results
+    
+    def _save_analysis(
+        self,
+        analysis_dir: str,
+        eeg_features: np.ndarray,
+        bio_features: np.ndarray,
+        predictions: List[ThoughtPrediction],
+        signal_quality: Dict[str, float]
+    ):
+        """Save analysis results to directory."""
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        save_dir = os.path.join(analysis_dir, f'analysis_{timestamp}')
+        os.makedirs(save_dir, exist_ok=True)
+        
+        # Save feature importance plot if available
+        if self.feature_analyzer is not None:
+            self.feature_analyzer.plot_feature_importance(
+                [
+                    pred.feature_importance
+                    for pred in predictions
+                    if pred.feature_importance is not None
+                ],
+                save_path=os.path.join(save_dir, 'feature_importance.png')
+            )
+        
+        # Save signal quality report
+        with open(os.path.join(save_dir, 'signal_quality.txt'), 'w') as f:
+            for channel, metrics in signal_quality.items():
+                f.write(f"{channel}:\n")
+                for metric, value in metrics.items():
+                    f.write(f"  {metric}: {value:.3f}\n")
+        
+        # Save predictions
+        with open(os.path.join(save_dir, 'predictions.txt'), 'w') as f:
+            for i, pred in enumerate(predictions):
+                f.write(f"Prediction {i+1}:\n")
+                f.write(f"  Thought: {self.get_thought_label(pred.thought_id)}\n")
+                f.write(f"  Confidence: {pred.confidence:.3f}\n")
+                if pred.emotional_state:
+                    f.write(f"  Emotional State: {pred.emotional_state}\n")
+                if pred.sentiment_scores:
+                    f.write("  Sentiment Scores:\n")
+                    for k, v in pred.sentiment_scores.items():
+                        f.write(f"    {k}: {v:.3f}\n")
+    
+    def get_thought_label(self, thought_id: int) -> Optional[str]:
+        """Get human-readable label for thought ID."""
+        if self.thought_labels is None or thought_id >= len(self.thought_labels):
+            return None
+        return self.thought_labels[thought_id]
+    
+    def explain_prediction(
+        self,
+        prediction: ThoughtPrediction
+    ) -> Dict[str, str]:
+        """Generate detailed explanation of prediction."""
+        explanation = {
+            'thought': self.get_thought_label(prediction.thought_id)
+                or f"Thought {prediction.thought_id}",
+            'confidence': f"{prediction.confidence:.2%}"
+        }
+        
+        if prediction.emotional_state:
+            explanation['emotional_state'] = prediction.emotional_state
+            
+        if prediction.sentiment_scores:
+            explanation['sentiment'] = (
+                f"Valence: {prediction.sentiment_scores['valence']:.2f}, "
+                f"Arousal: {prediction.sentiment_scores['arousal']:.2f}"
+            )
+        
+        if prediction.feature_importance:
+            # Get top 5 most important features
+            top_features = sorted(
+                prediction.feature_importance.items(),
+                key=lambda x: x[1],
+                reverse=True
+            )[:5]
+            
+            explanation['key_features'] = ", ".join(
+                f"{name} ({importance:.3f})"
+                for name, importance in top_features
+            )
+        
+        if prediction.signal_quality:
+            # Summarize signal quality
+            avg_quality = np.mean([
+                metrics['std']
+                for metrics in prediction.signal_quality.values()
+            ])
+            explanation['signal_quality'] = (
+                "Good" if avg_quality < 1.5
+                else "Fair" if avg_quality < 2.0
+                else "Poor"
+            )
+        
+        return explanation
 
-storage_manager = CloudStorageManager()
-
-@lru_cache(maxsize=1)
-def get_chroma_client() -> chromadb.HttpClient:
-    return chromadb.HttpClient(
-        ssl=True,
-        host=os.getenv('CHROMA_HOST'),
-        tenant=os.getenv('CHROMA_TENANT'),
-        database=os.getenv('CHROMA_DATABASE'),
-        headers={'x-chroma-token': os.getenv('CHROMA_TOKEN')}
+def load_pipeline(
+    model_path: str,
+    sentiment_model_path: Optional[str] = None,
+    thought_labels_path: Optional[str] = None,
+    feature_names_path: Optional[str] = None,
+    device: str = 'cuda' if torch.cuda.is_available() else 'cpu'
+) -> ThoughtInferencePipeline:
+    """Load complete inference pipeline from saved models."""
+    # Load model stack
+    model_stack = torch.load(model_path, map_location=device)
+    
+    # Load sentiment predictor if available
+    sentiment_predictor = None
+    if sentiment_model_path:
+        sentiment_model = torch.load(sentiment_model_path, map_location=device)
+        sentiment_predictor = SentimentPredictor(sentiment_model, device)
+    
+    # Load thought labels if available
+    thought_labels = None
+    if thought_labels_path:
+        thought_labels = np.load(thought_labels_path, allow_pickle=True)
+    
+    # Load feature names if available
+    feature_names = None
+    if feature_names_path:
+        feature_names = np.load(feature_names_path, allow_pickle=True)
+    
+    return ThoughtInferencePipeline(
+        model_stack=model_stack,
+        sentiment_predictor=sentiment_predictor,
+        thought_labels=thought_labels,
+        device=device,
+        feature_names=feature_names
     )
-
-def load_model_and_scaler() -> Tuple[EEGEmbeddingCNN, Any]:
-    if not os.path.exists("eeg_model.pth") or not os.path.exists("eeg_scaler.joblib"):
-        raise FileNotFoundError("Model or scaler file not found")
-    
-    from .eeg_processing import get_feature_vector
-    input_dim = len(get_feature_vector(np.random.randn(4, 2560)))
-    
-    model = EEGEmbeddingCNN(input_dim=input_dim, embedding_dim=EMBEDDING_DIM)
-    model.load_state_dict(torch.load("eeg_model.pth", map_location=DEVICE))
-    model.to(DEVICE).eval()
-    
-    return model, scaler
-
-@lru_cache(maxsize=128)
-def query_chroma_for_embedding(embedding_key: str) -> Dict[str, Any]:
-    """Query ChromaDB with caching for similar embeddings."""
-    embedding = joblib.load(f"embeddings/{embedding_key}.joblib")
-    client = get_chroma_client()
-    collection = client.get_or_create_collection(
-        name=os.getenv('CHROMA_COLLECTION', 'embeddings_eeg')
-    )
-    return collection.query(
-        query_embeddings=[embedding.tolist()],
-        n_results=1,
-        include=['metadatas']
-    )
-
-def process_eeg_file(file_path: str, model: EEGEmbeddingCNN, scaler: Any) -> Tuple[str, np.ndarray]:
-    df = pd.read_csv(file_path)
-    if not all(ch in df.columns for ch in CHANNELS):
-        raise ValueError(f"Missing required channels: {CHANNELS}")
-    
-    raw_eeg = df.iloc[:2560][CHANNELS].values.T
-    embedding = embed_new_sample(raw_eeg, model, scaler, device=DEVICE)
-    
-    # Cache embedding for future queries
-    os.makedirs("embeddings", exist_ok=True)
-    embedding_key = datetime.now().strftime('%Y%m%d_%H%M%S')
-    joblib.dump(embedding, f"embeddings/{embedding_key}.joblib")
-    
-    results = query_chroma_for_embedding(embedding_key)
-    
-    if results and results['metadatas']:
-        thought_label = results['metadatas'][0][0]['thought_label']
-        return THOUGHT_MAPPINGS.get(thought_label, 'Unknown thought pattern'), embedding
-    
-    return 'No specific thought pattern detected', embedding
-
-def main(file_path: str) -> Optional[str]:
-    try:
-        model, scaler = load_model_and_scaler()
-        thought, embedding = process_eeg_file(file_path, model, scaler)
-        storage_manager.store_result(thought, embedding)
-        return thought
-    except Exception as e:
-        print(f"Error during inference: {e}")
-        return None
-
-if __name__ == "__main__":
-    import sys
-    if len(sys.argv) != 2:
-        print("Usage: python inference.py <eeg_file.csv>")
-        sys.exit(1)
-    main(sys.argv[1])
