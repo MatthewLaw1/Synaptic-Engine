@@ -1,17 +1,28 @@
 <template>
-  <div class="fixed z-50 h-12 w-full border-b border-gray-300/50 bg-gray-50 px-4 opacity-100 sm:h-16 sm:shadow overflow-hidden">
-    <div class="mx-auto flex h-full max-w-7xl items-center justify-between">
-      <NuxtLink to="/">
-        <Logo class="h-7 sm:h-8 w-auto" />
+  <div class="fixed z-50 w-full border-b-2 border-amber-500 bg-white shadow-md pt-4">
+    <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-6">
+      <NuxtLink to="/" class="flex items-center">
+        <Logo class="h-12 sm:h-14 w-auto" />
       </NuxtLink>
-      <div class="flex items-center space-x-2">
-        <div class="flex items-center space-x-3 sm:space-x-4">
-          <NuxtLink class="text-sm font-medium text-gray-500 hover:text-amber-600" to="/about">
-            About
-          </NuxtLink>
-          <NuxtLink class="text-sm font-medium text-gray-500 hover:text-amber-600" to="/demo">
-            Demo
-          </NuxtLink>
+      <div class="flex items-center space-x-8">
+        <NuxtLink
+          class="text-xl font-medium text-gray-800 hover:text-amber-500"
+          to="/about"
+        >
+          About
+        </NuxtLink>
+        <NuxtLink
+          class="text-xl font-medium text-gray-800 hover:text-amber-500"
+          to="/team"
+        >
+          Team
+        </NuxtLink>
+        <NuxtLink
+          class="text-xl font-medium text-gray-800 hover:text-amber-500"
+          to="/demo"
+        >
+          Demo
+        </NuxtLink>
         </div>
       </div>
     </div>
