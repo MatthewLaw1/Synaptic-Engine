@@ -17,5 +17,23 @@ export default defineNuxtConfig({
     server: {
       allowedHosts: ["bf26-68-65-164-17.ngrok-free.app"] // Add your Ngrok domain here
     }
+  },
+  app: {
+    pageTransition: { name: 'page', mode: 'out-in' },
+    defaultLayout: 'default',
+  },
+  router: {
+    options: {
+      strict: true
+    }
+  },
+  hooks: {
+    'pages:extend'(pages) {
+      pages.push({
+        name: 'index',
+        path: '/',
+        redirect: '/about'
+      })
+    }
   }
 })
