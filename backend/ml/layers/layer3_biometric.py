@@ -1,107 +1,249 @@
-"""Third layer: Biometric correlation for thought refinement."""
+"""Biometric correlation layer for thought refinement.
 
+This layer correlates biometric signals with thought candidates to further refine
+the selection. It uses advanced correlation techniques and gating mechanisms to
+identify the most likely thought patterns based on physiological responses.
+"""
+
+from __future__ import annotations
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Dict, Tuple, List
+from typing import Dict, Tuple, List, Optional, TypeVar, Final
+from dataclasses import dataclass
+import logging
 import numpy as np
 
-class BiometricCorrelationLayer(nn.Module):
-    """Third layer: Correlate biometric patterns with thought candidates."""
+logger = logging.getLogger(__name__)
+
+# Type definitions
+Tensor = TypeVar('Tensor', bound=torch.Tensor)
+
+# Constants
+MIN_CORRELATION: Final[float] = -1.0
+MAX_CORRELATION: Final[float] = 1.0
+MIN_CANDIDATES: Final[int] = 1
+MAX_CANDIDATES: Final[int] = 50
+
+@dataclass
+class BiometricConfig:
+    """Configuration for biometric correlation layer."""
     
-    def __init__(
-        self,
-        freq_dim: int,
-        bio_dim: int,
-        hidden_dim: int = 128,
-        max_candidates: int = 10,
-        dropout: float = 0.2
-    ):
+    freq_dim: int
+    bio_dim: int
+    hidden_dim: int = 128
+    max_candidates: int = 10
+    num_heads: int = 4
+    dropout: float = 0.2
+    activation: str = 'relu'
+    layer_norm: bool = True
+    
+    def __post_init__(self) -> None:
+        """Validate configuration parameters."""
+        if self.freq_dim <= 0 or self.bio_dim <= 0:
+            raise ValueError("Dimensions must be positive")
+        if not MIN_CANDIDATES <= self.max_candidates <= MAX_CANDIDATES:
+            raise ValueError(
+                f"max_candidates must be between {MIN_CANDIDATES} and {MAX_CANDIDATES}"
+            )
+
+class CorrelationAttention(nn.Module):
+    """Attention mechanism for biometric correlation analysis."""
+    
+    def __init__(self, config: BiometricConfig) -> None:
+        """Initialize correlation attention.
+        
+        Args:
+            config: Layer configuration
+        """
         super().__init__()
         
-        # Biometric feature processing
-        self.bio_encoder = nn.Sequential(
-            nn.Linear(bio_dim, hidden_dim),
-            nn.LayerNorm(hidden_dim),
-            nn.ReLU(),
-            nn.Dropout(dropout)
-        )
-        
-        # Frequency feature processing
-        self.freq_encoder = nn.Sequential(
-            nn.Linear(freq_dim, hidden_dim),
-            nn.LayerNorm(hidden_dim),
-            nn.ReLU(),
-            nn.Dropout(dropout)
-        )
-        
-        # Correlation attention
-        self.correlation_attention = nn.MultiheadAttention(
-            embed_dim=hidden_dim,
-            num_heads=4,
-            dropout=dropout,
+        self.attention = nn.MultiheadAttention(
+            embed_dim=config.hidden_dim,
+            num_heads=config.num_heads,
+            dropout=config.dropout,
             batch_first=True
         )
         
-        # Gating mechanism
-        self.gate = nn.Sequential(
-            nn.Linear(hidden_dim * 2, hidden_dim),
-            nn.Sigmoid()
-        )
-        
-        # Candidate scoring
-        self.scorer = nn.Sequential(
-            nn.Linear(hidden_dim, hidden_dim // 2),
-            nn.ReLU(),
-            nn.Dropout(dropout),
-            nn.Linear(hidden_dim // 2, max_candidates)
-        )
-        
-        # Correlation strength estimator
-        self.correlation_estimator = nn.Sequential(
-            nn.Linear(hidden_dim, hidden_dim // 2),
-            nn.ReLU(),
-            nn.Linear(hidden_dim // 2, 1),
-            nn.Sigmoid()
-        )
+        self.layer_norm = nn.LayerNorm(config.hidden_dim) if config.layer_norm else None
     
     def forward(
         self,
-        freq_features: torch.Tensor,
-        bio_features: torch.Tensor,
-        candidate_mask: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        """
-        Forward pass through biometric correlation layer.
+        freq_features: Tensor,
+        bio_features: Tensor,
+        mask: Optional[Tensor] = None
+    ) -> Tensor:
+        """Apply correlation attention.
         
         Args:
             freq_features: Frequency band features
             bio_features: Biometric features
-            candidate_mask: Mask of valid candidates from previous layer
+            mask: Optional attention mask
+            
+        Returns:
+            Correlated features
+        """
+        # Apply attention
+        attended, _ = self.attention(
+            freq_features,
+            bio_features,
+            bio_features,
+            key_padding_mask=mask
+        )
+        
+        # Apply layer norm if enabled
+        if self.layer_norm is not None:
+            attended = self.layer_norm(attended)
+        
+        return attended
+
+class GatingMechanism(nn.Module):
+    """Gating mechanism for feature fusion."""
+    
+    def __init__(self, config: BiometricConfig) -> None:
+        """Initialize gating mechanism.
+        
+        Args:
+            config: Layer configuration
+        """
+        super().__init__()
+        
+        self.gate_network = nn.Sequential(
+            nn.Linear(config.hidden_dim * 2, config.hidden_dim),
+            self._get_activation(config.activation),
+            nn.Linear(config.hidden_dim, config.hidden_dim),
+            nn.Sigmoid()
+        )
+    
+    def _get_activation(self, name: str) -> nn.Module:
+        """Get activation function."""
+        if name == 'relu':
+            return nn.ReLU()
+        elif name == 'gelu':
+            return nn.GELU()
+        else:
+            raise ValueError(f"Unsupported activation: {name}")
+    
+    def forward(self, freq_features: Tensor, bio_features: Tensor) -> Tensor:
+        """Apply gating mechanism.
+        
+        Args:
+            freq_features: Frequency band features
+            bio_features: Biometric features
+            
+        Returns:
+            Gated features
+        """
+        # Concatenate features
+        combined = torch.cat([freq_features, bio_features], dim=-1)
+        
+        # Compute gate values
+        gate = self.gate_network(combined)
+        
+        # Apply gating
+        gated = gate * freq_features + (1 - gate) * bio_features
+        
+        return gated
+
+class BiometricCorrelationLayer(nn.Module):
+    """Layer for correlating biometric patterns with thought candidates."""
+    
+    def __init__(self, config: BiometricConfig) -> None:
+        """Initialize biometric correlation layer.
+        
+        Args:
+            config: Layer configuration
+        """
+        super().__init__()
+        
+        self.config = config
+        
+        # Feature processing
+        self.freq_encoder = nn.Sequential(
+            nn.Linear(config.freq_dim, config.hidden_dim),
+            nn.LayerNorm(config.hidden_dim) if config.layer_norm else nn.Identity(),
+            self._get_activation(),
+            nn.Dropout(config.dropout)
+        )
+        
+        self.bio_encoder = nn.Sequential(
+            nn.Linear(config.bio_dim, config.hidden_dim),
+            nn.LayerNorm(config.hidden_dim) if config.layer_norm else nn.Identity(),
+            self._get_activation(),
+            nn.Dropout(config.dropout)
+        )
+        
+        # Correlation mechanism
+        self.correlation_attention = CorrelationAttention(config)
+        
+        # Gating mechanism
+        self.gating = GatingMechanism(config)
+        
+        # Candidate scoring
+        self.scorer = nn.Sequential(
+            nn.Linear(config.hidden_dim, config.hidden_dim // 2),
+            self._get_activation(),
+            nn.Dropout(config.dropout),
+            nn.Linear(config.hidden_dim // 2, config.max_candidates)
+        )
+        
+        # Correlation strength estimator
+        self.correlation_estimator = nn.Sequential(
+            nn.Linear(config.hidden_dim, config.hidden_dim // 2),
+            self._get_activation(),
+            nn.Linear(config.hidden_dim // 2, 1),
+            nn.Sigmoid()
+        )
+    
+    def _get_activation(self) -> nn.Module:
+        """Get activation function based on configuration."""
+        if self.config.activation == 'relu':
+            return nn.ReLU()
+        elif self.config.activation == 'gelu':
+            return nn.GELU()
+        else:
+            raise ValueError(f"Unsupported activation: {self.config.activation}")
+    
+    def forward(
+        self,
+        freq_features: Tensor,
+        bio_features: Tensor,
+        candidate_mask: Tensor
+    ) -> Tuple[Tensor, Tensor, Tensor]:
+        """Forward pass through biometric correlation layer.
+        
+        Args:
+            freq_features: Frequency band features
+            bio_features: Biometric features
+            candidate_mask: Mask of valid candidates
             
         Returns:
             Tuple of (correlation_scores, correlation_strength, fused_features)
+            
+        Raises:
+            ValueError: If input dimensions are invalid
         """
+        if freq_features.dim() != 2:
+            raise ValueError(
+                f"freq_features must be 2D (batch, features), "
+                f"got shape {freq_features.shape}"
+            )
+        
         # Encode features
-        bio_encoded = self.bio_encoder(bio_features)
         freq_encoded = self.freq_encoder(freq_features)
+        bio_encoded = self.bio_encoder(bio_features)
         
         # Apply correlation attention
-        corr_features, _ = self.correlation_attention(
+        corr_features = self.correlation_attention(
             freq_encoded.unsqueeze(1),
-            bio_encoded.unsqueeze(1),
             bio_encoded.unsqueeze(1)
         )
         
-        # Calculate gate values
-        gate_input = torch.cat([
+        # Apply gating
+        fused = self.gating(
             freq_encoded,
             corr_features.squeeze(1)
-        ], dim=1)
-        gate = self.gate(gate_input)
-        
-        # Apply gating
-        fused = gate * freq_encoded + (1 - gate) * corr_features.squeeze(1)
+        )
         
         # Score candidates
         scores = self.scorer(fused)
@@ -116,16 +258,15 @@ class BiometricCorrelationLayer(nn.Module):
     
     def reduce_candidates(
         self,
-        correlation_scores: torch.Tensor,
-        correlation_strength: torch.Tensor,
-        max_candidates: int = 5,
+        correlation_scores: Tensor,
+        correlation_strength: Tensor,
+        max_candidates: Optional[int] = None,
         strength_threshold: float = 0.6
-    ) -> Tuple[torch.Tensor, List[int]]:
-        """
-        Reduce thought candidates based on biometric correlation.
+    ) -> Tuple[Tensor, List[int]]:
+        """Reduce thought candidates based on biometric correlation.
         
         Args:
-            correlation_scores: Scores for each remaining candidate
+            correlation_scores: Scores for each candidate
             correlation_strength: Strength of biometric correlation
             max_candidates: Maximum number of candidates to keep
             strength_threshold: Minimum correlation strength threshold
@@ -133,6 +274,9 @@ class BiometricCorrelationLayer(nn.Module):
         Returns:
             Tuple of (filtered_scores, selected_indices)
         """
+        if max_candidates is None:
+            max_candidates = self.config.max_candidates
+        
         # Filter by correlation strength
         strength_mask = correlation_strength > strength_threshold
         
@@ -154,10 +298,18 @@ class BiometricCorrelationLayer(nn.Module):
     
     def analyze_correlation_patterns(
         self,
-        bio_features: torch.Tensor,
-        freq_features: torch.Tensor
+        bio_features: Tensor,
+        freq_features: Tensor
     ) -> Dict[str, float]:
-        """Analyze correlation patterns between biometric and frequency data."""
+        """Analyze correlation patterns between biometric and frequency data.
+        
+        Args:
+            bio_features: Biometric features
+            freq_features: Frequency features
+            
+        Returns:
+            Dictionary containing correlation analysis results
+        """
         with torch.no_grad():
             # Encode features
             bio_encoded = self.bio_encoder(bio_features)
@@ -175,7 +327,20 @@ class BiometricCorrelationLayer(nn.Module):
                 'mean_correlation': correlation_matrix.mean().item(),
                 'max_correlation': correlation_matrix.max().item(),
                 'min_correlation': correlation_matrix.min().item(),
-                'std_correlation': correlation_matrix.std().item()
+                'std_correlation': correlation_matrix.std().item(),
+                'positive_ratio': (correlation_matrix > 0).float().mean().item()
             }
             
             return patterns
+
+def create_biometric_layer(**kwargs) -> BiometricCorrelationLayer:
+    """Create biometric correlation layer.
+    
+    Args:
+        **kwargs: Configuration parameters
+        
+    Returns:
+        Configured BiometricCorrelationLayer instance
+    """
+    config = BiometricConfig(**kwargs)
+    return BiometricCorrelationLayer(config)
