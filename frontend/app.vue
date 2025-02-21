@@ -17,7 +17,7 @@ provideHeadlessUseId(() => useId())
 
 useHead({
   titleTemplate: (titleChunk) => {
-    return titleChunk ? `${titleChunk} | Synapse` : "Synapse";
+    return titleChunk ? `${titleChunk} | Synaptic Engine` : "Synaptic Engine";
   },
 });
 </script>
