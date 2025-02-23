@@ -20,7 +20,6 @@ def create_video(prompt):
     try:
         print(f"\nStarting video generation with prompt: {prompt}")
         
-        # Create generation
         response = requests.post(url, headers=headers, json=data)
         response.raise_for_status()
         result = response.json()
@@ -32,7 +31,6 @@ def create_video(prompt):
         generation_id = result['id']
         print(f"Generation started with ID: {generation_id}")
         
-        # Poll for completion
         while True:
             status_url = f"{url}/{generation_id}"
             status_response = requests.get(status_url, headers=headers)
@@ -60,6 +58,5 @@ def create_video(prompt):
         return None
 
 if __name__ == "__main__":
-    # Test the video generation
     test_prompt = "an old lady laughing underwater, wearing a scuba diving suit"
     create_video(test_prompt)
