@@ -1,5 +1,3 @@
-"""Enhanced EEG processing utilities with advanced filtering and feature extraction."""
-
 import numpy as np
 from scipy.fftpack import fft
 from scipy.signal import welch, butter, filtfilt, iirnotch

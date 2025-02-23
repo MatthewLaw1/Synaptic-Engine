@@ -19,10 +19,8 @@ class TestPipeline(unittest.TestCase):
         thought = "Walking through a peaceful garden"
         stress_level = 30.0
         
-        # Generate prompt
         prompt = self.pipeline.generate_video_prompt(thought, stress_level)
         
-        # Basic validation
         self.assertIsInstance(prompt, str)
         self.assertTrue(len(prompt) > 0)
         self.assertIn("cinematic", prompt.lower())

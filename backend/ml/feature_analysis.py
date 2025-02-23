@@ -1,5 +1,3 @@
-"""Feature analysis utilities for understanding feature importance and patterns."""
-
 import numpy as np
 from typing import Dict, List, Tuple
 from sklearn.feature_selection import mutual_info_classif, SelectKBest
@@ -16,14 +14,12 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class FeatureImportance:
-    """Container for feature importance results."""
     name: str
     importance: float
     category: str
     temporal_stability: float
 
 class FeatureAnalyzer:
-    """Analyze feature importance and patterns across modalities."""
     
     def __init__(
         self,
@@ -42,10 +38,7 @@ class FeatureAnalyzer:
         labels: np.ndarray,
         feature_names: List[str]
     ) -> List[FeatureImportance]:
-        """Calculate mutual information between features and labels."""
         mi_scores = mutual_info_classif(features, labels)
-        
-        # Calculate temporal stability
         temporal_stability = self._calculate_temporal_stability(features)
         
         return [
@@ -65,7 +58,6 @@ class FeatureAnalyzer:
         features: np.ndarray,
         window_size: int = 10
     ) -> np.ndarray:
-        """Calculate temporal stability of features."""
         n_samples = features.shape[0]
         n_windows = n_samples - window_size + 1
         
@@ -101,7 +93,6 @@ class FeatureAnalyzer:
         """Calculate SHAP values for model interpretability."""
         model.eval()
         
-        # Get background dataset
         background = []
         for i, batch in enumerate(dataloader):
             if i >= background_size:
@@ -109,10 +100,8 @@ class FeatureAnalyzer:
             background.append(batch)
         background = torch.cat(background, dim=0)
         
-        # Create explainer
         explainer = shap.DeepExplainer(model, background.to(self.device))
         
-        # Calculate SHAP values
         shap_values = []
         for batch in dataloader:
             batch = batch.to(self.device)
@@ -163,23 +152,19 @@ class FeatureAnalyzer:
         save_path: Optional[str] = None
     ):
         """Plot feature importance analysis results."""
-        # Sort by importance
         sorted_features = sorted(
             importance_list,
             key=lambda x: x.importance,
             reverse=True
         )
         
-        # Prepare data for plotting
         names = [f.name for f in sorted_features]
         importances = [f.importance for f in sorted_features]
         categories = [f.category for f in sorted_features]
         
-        # Create plot
         plt.figure(figsize=(12, 6))
         bars = plt.barh(names, importances)
         
-        # Color bars by category
         category_colors = {
             'frequency_domain': 'skyblue',
             'complexity': 'lightgreen',
@@ -219,7 +204,6 @@ class FeatureAnalyzer:
             window_results = {}
             
             for window_size in window_sizes:
-                # Calculate rolling statistics
                 n_windows = len(feature_data) - window_size + 1
                 rolling_mean = np.array([
                     np.mean(feature_data[i:i+window_size])
@@ -230,7 +214,6 @@ class FeatureAnalyzer:
                     for i in range(n_windows)
                 ])
                 
-                # Calculate stability metric
                 stability = 1.0 / (np.std(rolling_mean) + 1e-6)
                 window_results[window_size] = stability
             
@@ -263,7 +246,6 @@ class FeatureAnalyzer:
         save_dir: Optional[str] = None
     ) -> Dict:
         """Run comprehensive feature analysis."""
-        # Combine features
         all_features = np.hstack([eeg_features, bio_features])
         all_feature_names = self.eeg_feature_names + self.bio_feature_names
         
@@ -283,7 +265,6 @@ class FeatureAnalyzer:
         }
         
         if save_dir:
-            # Plot and save visualizations
             self.plot_feature_importance(
                 results['mutual_information'],
                 title='Mutual Information Analysis',
@@ -296,7 +277,6 @@ class FeatureAnalyzer:
                 save_path=f'{save_dir}/random_forest.png'
             )
             
-            # Plot correlation matrix
             plt.figure(figsize=(12, 12))
             sns.heatmap(
                 results['correlations'],

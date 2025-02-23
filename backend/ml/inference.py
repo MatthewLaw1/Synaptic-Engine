@@ -126,16 +126,13 @@ class ThoughtInferencePipeline:
         if self.feature_analyzer is None or self.feature_names is None:
             return None
         
-        # Combine features
         combined_features = np.hstack([eeg_features, bio_features])
         
-        # Get SHAP values for current features
         shap_values = self.feature_analyzer.analyze_shap_values(
             self.model_stack.eeg_embedder,
             torch.FloatTensor(combined_features).unsqueeze(0)
         )
         
-        # Create importance dictionary
         importance_dict = {
             name: float(abs(value))
             for name, value in zip(self.feature_names, shap_values[0])
@@ -156,25 +153,7 @@ class ThoughtInferencePipeline:
         save_analysis: bool = False,
         analysis_dir: Optional[str] = None
     ) -> List[ThoughtPrediction]:
-        """
-        Enhanced thought prediction pipeline with feature analysis.
-        
-        Args:
-            eeg_data: Raw EEG signal array
-            rr_intervals: Optional RR intervals for HRV analysis
-            blood_pressure: Optional tuple of (systolic, diastolic) arrays
-            gsr_signal: Optional galvanic skin response signal
-            resp_signal: Optional respiratory signal
-            top_k: Number of top predictions to return
-            sentiment_threshold: Threshold for sentiment-based filtering
-            confidence_threshold: Minimum confidence for predictions
-            save_analysis: Whether to save analysis results
-            analysis_dir: Directory to save analysis results
-            
-        Returns:
-            List of ThoughtPrediction objects
-        """
-        # Preprocess signals
+
         logger.info("Preprocessing signals...")
         eeg_features, bio_features, signal_quality = self.preprocess_signals(
             eeg_data,
@@ -184,13 +163,11 @@ class ThoughtInferencePipeline:
             resp_signal
         )
         
-        # Analyze sentiment if available
         sentiment_results = None
         if self.sentiment_predictor is not None:
             logger.info("Analyzing sentiment...")
             sentiment_results = self.analyze_sentiment(eeg_features, bio_features)
             
-            # Check sentiment confidence
             sentiment_confidence = max(
                 abs(sentiment_results['valence']),
                 abs(sentiment_results['arousal'])
@@ -200,13 +177,11 @@ class ThoughtInferencePipeline:
                     f"Low sentiment confidence: {sentiment_confidence:.3f}"
                 )
         
-        # Analyze feature importance
         feature_importance = self.analyze_feature_importance(
             eeg_features,
             bio_features
         )
         
-        # Get predictions from model stack
         logger.info("Running thought classification...")
         predictions = self.model_stack.predict(
             eeg_features,
@@ -214,13 +189,11 @@ class ThoughtInferencePipeline:
             top_k=top_k
         )
         
-        # Format results
         results = []
         for thought_idx, confidence in zip(
             predictions['thought_indices'],
             predictions['confidence_scores']
         ):
-            # Skip low confidence predictions
             if confidence < confidence_threshold:
                 continue
                 
@@ -238,7 +211,6 @@ class ThoughtInferencePipeline:
             )
             results.append(thought_pred)
         
-        # Save analysis if requested
         if save_analysis and analysis_dir:
             self._save_analysis(
                 analysis_dir,
@@ -263,7 +235,6 @@ class ThoughtInferencePipeline:
         save_dir = os.path.join(analysis_dir, f'analysis_{timestamp}')
         os.makedirs(save_dir, exist_ok=True)
         
-        # Save feature importance plot if available
         if self.feature_analyzer is not None:
             self.feature_analyzer.plot_feature_importance(
                 [
@@ -274,14 +245,12 @@ class ThoughtInferencePipeline:
                 save_path=os.path.join(save_dir, 'feature_importance.png')
             )
         
-        # Save signal quality report
         with open(os.path.join(save_dir, 'signal_quality.txt'), 'w') as f:
             for channel, metrics in signal_quality.items():
                 f.write(f"{channel}:\n")
                 for metric, value in metrics.items():
                     f.write(f"  {metric}: {value:.3f}\n")
         
-        # Save predictions
         with open(os.path.join(save_dir, 'predictions.txt'), 'w') as f:
             for i, pred in enumerate(predictions):
                 f.write(f"Prediction {i+1}:\n")
@@ -321,7 +290,6 @@ class ThoughtInferencePipeline:
             )
         
         if prediction.feature_importance:
-            # Get top 5 most important features
             top_features = sorted(
                 prediction.feature_importance.items(),
                 key=lambda x: x[1],
@@ -334,7 +302,6 @@ class ThoughtInferencePipeline:
             )
         
         if prediction.signal_quality:
-            # Summarize signal quality
             avg_quality = np.mean([
                 metrics['std']
                 for metrics in prediction.signal_quality.values()
@@ -355,21 +322,17 @@ def load_pipeline(
     device: str = 'cuda' if torch.cuda.is_available() else 'cpu'
 ) -> ThoughtInferencePipeline:
     """Load complete inference pipeline from saved models."""
-    # Load model stack
     model_stack = torch.load(model_path, map_location=device)
     
-    # Load sentiment predictor if available
     sentiment_predictor = None
     if sentiment_model_path:
         sentiment_model = torch.load(sentiment_model_path, map_location=device)
         sentiment_predictor = SentimentPredictor(sentiment_model, device)
     
-    # Load thought labels if available
     thought_labels = None
     if thought_labels_path:
         thought_labels = np.load(thought_labels_path, allow_pickle=True)
     
-    # Load feature names if available
     feature_names = None
     if feature_names_path:
         feature_names = np.load(feature_names_path, allow_pickle=True)

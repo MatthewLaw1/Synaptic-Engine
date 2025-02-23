@@ -44,7 +44,6 @@ class SentimentAnalyzer(nn.Module):
     ):
         super().__init__()
         
-        # EEG processing branch
         self.eeg_encoder = nn.Sequential(
             nn.Linear(eeg_feature_dim, hidden_dim),
             nn.LayerNorm(hidden_dim),
@@ -57,7 +56,6 @@ class SentimentAnalyzer(nn.Module):
             for _ in range(num_layers)
         ])
         
-        # Biometric processing branch
         self.bio_encoder = nn.Sequential(
             nn.Linear(bio_feature_dim, hidden_dim // 2),
             nn.LayerNorm(hidden_dim // 2),
@@ -68,7 +66,6 @@ class SentimentAnalyzer(nn.Module):
             nn.ReLU()
         )
         
-        # Fusion and output layers
         self.fusion_layer = nn.Sequential(
             nn.Linear(hidden_dim * 2, hidden_dim),
             nn.LayerNorm(hidden_dim),
@@ -76,7 +73,6 @@ class SentimentAnalyzer(nn.Module):
             nn.Dropout(dropout)
         )
         
-        # Output heads for valence and arousal
         self.valence_head = nn.Sequential(
             nn.Linear(hidden_dim, hidden_dim // 2),
             nn.ReLU(),
@@ -106,24 +102,18 @@ class SentimentAnalyzer(nn.Module):
         Returns:
             Tuple of (valence, arousal) predictions
         """
-        # Process EEG features
         x_eeg = self.eeg_encoder(eeg_features)
         
-        # Apply attention layers
         for attn_layer in self.eeg_attention_layers:
-            x_eeg = x_eeg + attn_layer(x_eeg)  # Residual connection
+            x_eeg = x_eeg + attn_layer(x_eeg)  
         
-        # Global average pooling over time
         x_eeg = x_eeg.mean(dim=1)
         
-        # Process biometric features
         x_bio = self.bio_encoder(bio_features)
         
-        # Concatenate and fuse features
         x = torch.cat([x_eeg, x_bio], dim=1)
         x = self.fusion_layer(x)
         
-        # Generate predictions
         valence = self.valence_head(x)
         arousal = self.arousal_head(x)
         

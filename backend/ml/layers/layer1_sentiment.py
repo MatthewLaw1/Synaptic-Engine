@@ -74,7 +74,7 @@ class MultiHeadAttention(nn.Module):
         if len(self._attention_cache) > self.cache_size:
             self._attention_cache.clear()
     
-    @torch.cuda.amp.autocast()  # Enable automatic mixed precision
+    @torch.cuda.amp.autocast()  
     def forward(
         self,
         query: Tensor,
@@ -92,27 +92,22 @@ class MultiHeadAttention(nn.Module):
                 if cache_key in self._attention_cache:
                     return self._attention_cache[cache_key]
             
-            # Linear projections with shape optimization
             q = self.q_proj(query).reshape(batch_size, -1, self.num_heads, self.head_dim)
             k = self.k_proj(key).reshape(batch_size, -1, self.num_heads, self.head_dim)
             v = self.v_proj(value).reshape(batch_size, -1, self.num_heads, self.head_dim)
             
-            # Optimize transpose operations
             q = q.transpose(1, 2)
             k = k.transpose(1, 2)
             v = v.transpose(1, 2)
             
-            # Compute attention scores with memory efficiency
             scores = torch.matmul(q, k.transpose(-2, -1)) / self.scale
             
             if mask is not None:
                 scores = scores.masked_fill(mask == 0, float('-inf'))
             
-            # Apply softmax and dropout
             attn = F.softmax(scores, dim=-1, dtype=torch.float32)
             attn = self.dropout(attn)
             
-            # Compute output efficiently
             out = torch.matmul(attn, v)
             out = out.transpose(1, 2).reshape(batch_size, -1, self.num_heads * self.head_dim)
             
@@ -210,20 +205,16 @@ class SentimentLayer(nn.Module):
         try:
             self._validate_inputs(eeg_features, bio_features)
             
-            # Process features with memory optimization
             eeg_encoded = self.eeg_encoder(eeg_features)
             eeg_attended = self.attention(eeg_encoded, eeg_encoded, eeg_encoded)
             bio_encoded = self.bio_encoder(bio_features)
             
-            # Efficient temporal pooling and fusion
             fused = self.fusion(
                 torch.cat([
                     torch.mean(eeg_attended, dim=1),
                     bio_encoded
                 ], dim=1)
-            )
-            
-            # Generate predictions
+            )  
             valence = self.valence(fused)
             arousal = self.arousal(fused)
             

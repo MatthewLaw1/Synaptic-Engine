@@ -232,18 +232,9 @@ class VideoPromptGenerator(BaseLLMPipeline):
         )
     
     def format_for_luma(self, prompt: str) -> str:
-        """Format the prompt for Luma API.
-        
-        Args:
-            prompt: Video generation prompt
-            
-        Returns:
-            Formatted prompt ready for Luma API
-        """
-        # Clean up any extra whitespace or newlines
+
         prompt = prompt.strip()
         
-        # Add cinematic quality keywords
         prompt = f"{prompt}, cinematic 8k ultra HD, professional lighting, depth of field"
         
         return prompt

@@ -158,7 +158,6 @@ class ThoughtReductionPipeline(nn.Module):
             
             start_time.record()
             
-            # Layer 1: Sentiment Analysis
             valence, arousal, sentiment_features = self.sentiment_layer(eeg_features, bio_features)
             sentiment_mask = self.sentiment_layer.filter_candidates(valence, arousal)
             results['sentiment'] = {
@@ -171,7 +170,6 @@ class ThoughtReductionPipeline(nn.Module):
                 torch.mean(torch.abs(valence) + torch.abs(arousal)).item()
             )
             
-            # Layer 2: Frequency Analysis
             pattern_scores, freq_confidence, freq_features = self.frequency_layer(
                 eeg_features, sentiment_features
             )
@@ -186,7 +184,6 @@ class ThoughtReductionPipeline(nn.Module):
             }
             self.metrics['frequency_accuracy'].append(freq_confidence.mean().item())
             
-            # Layer 3: Biometric Correlation
             corr_scores, corr_strength, bio_features = self.biometric_layer(
                 freq_features, bio_features, freq_mask
             )
@@ -201,7 +198,6 @@ class ThoughtReductionPipeline(nn.Module):
             }
             self.metrics['biometric_correlation'].append(corr_strength.mean().item())
             
-            # Layer 4: Final Classification
             thought_scores, confidence, hidden = self.final_layer(
                 sentiment_features, freq_features, bio_features, temporal_context
             )
@@ -290,7 +286,7 @@ class ThoughtReductionPipeline(nn.Module):
         try:
             path.parent.mkdir(parents=True, exist_ok=True)
             metrics_dict = {
-                k: [float(v) for v in vals]  # Ensure all values are Python native types
+                k: [float(v) for v in vals]
                 for k, vals in self.metrics.items()
             }
             with open(path, 'w') as f:

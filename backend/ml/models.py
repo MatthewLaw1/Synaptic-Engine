@@ -1,5 +1,3 @@
-"""Neural network models for signal classification using layered reduction."""
-
 from typing import Dict, List, Optional, Tuple, Any, Union
 import torch
 import torch.nn as nn
@@ -74,7 +72,7 @@ class NeuralClassifier(nn.Module):
             
             if use_kv_cache:
                 self._kv_cache[cache_key] = results
-                if len(self._kv_cache) > 1000:  # Prevent memory leaks
+                if len(self._kv_cache) > 1000:
                     self._kv_cache.clear()
                     
             return results
@@ -240,7 +238,7 @@ class ModelTrainer:
                     'confidence_distribution': predictions.get('confidence_scores', None)
                 }
                 
-                self.scheduler.step(1 - accuracy)  # Update learning rate based on accuracy
+                self.scheduler.step(1 - accuracy)
                 return metrics
         except Exception as e:
             raise ModelError(f"Validation failed: {str(e)}")
