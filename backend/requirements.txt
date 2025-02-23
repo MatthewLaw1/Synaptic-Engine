@@ -44,3 +44,10 @@ nvidia-cusolver-cu12>=11.4.5.107
 nvidia-cusparse-cu12>=12.1.0.106
 nvidia-nccl-cu12>=2.18.1
 nvidia-nvtx-cu12>=12.1.105
+
+# vLLM Optimizations
+vllm>=0.2.0
+ray>=2.7.0
+triton>=2.1.0
+flash-attn>=2.3.0
+xformers>=0.0.22
