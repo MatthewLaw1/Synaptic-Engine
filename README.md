@@ -10,6 +10,8 @@ We present Synaptic Engine, a novel neural processing framework that implements 
 
 Given an input space $\mathcal{X} = \{\mathbf{x}_i\}_{i=1}^n$ comprising EEG signals $\mathbf{E} \in \mathbb{R}^{c \times t}$ and biometric signals $\mathbf{B} \in \mathbb{R}^{d}$, we aim to compute a thought state mapping $f: \mathcal{X} \rightarrow \mathcal{T}$ where $\mathcal{T}$ represents the thought space manifold.
 
+![Synaptic Engine Architecture](frontend/public/images/Screenshot%202025-02-21%20at%2005.08.40.png)
+
 ### 1.2 Technical Significance
 
 The framework addresses three key challenges:
@@ -134,13 +136,13 @@ graph TD
 
 The system implements a hierarchical reduction pipeline $\mathcal{P}$ defined as:
 
-$\mathcal{P}(\mathbf{x}) = \mathcal{L}_4 \circ \mathcal{L}_3 \circ \mathcal{L}_2 \circ \mathcal{L}_1(\mathbf{x})$
+$$\mathcal{P}(\mathbf{x}) = \mathcal{L}_4 \circ \mathcal{L}_3 \circ \mathcal{L}_2 \circ \mathcal{L}_1(\mathbf{x})$$
 
 where $\mathcal{L}_i$ represents the i-th layer transformation.
 
 Each layer achieves progressive dimensionality reduction while maintaining information density:
 
-$\text{Density}_i = \frac{\text{Information}_i}{\text{Dimension}_i} \geq \text{Density}_{i-1}$
+$$\text{Density}_i = \frac{\text{Information}_i}{\text{Dimension}_i} \geq \text{Density}_{i-1}$$
 
 where Information is measured in bits and Dimension represents feature space size.
 
@@ -152,20 +154,20 @@ where Information is measured in bits and Dimension represents feature space siz
 
 The valence-arousal decomposition follows:
 
-$\mathbf{V} = \tanh(\mathbf{W}_v \cdot \text{MHA}(\mathbf{X}) + \mathbf{b}_v)$
-$\mathbf{A} = \tanh(\mathbf{W}_a \cdot \text{MHA}(\mathbf{X}) + \mathbf{b}_a)$
+$$\mathbf{V} = \tanh(\mathbf{W}_v \cdot \text{MHA}(\mathbf{X}) + \mathbf{b}_v)$$
+$$\mathbf{A} = \tanh(\mathbf{W}_a \cdot \text{MHA}(\mathbf{X}) + \mathbf{b}_a)$$
 
 where MHA denotes Multi-Head Attention:
 
-$\text{MHA}(\mathbf{X}) = [\text{head}_1; \ldots; \text{head}_h]\mathbf{W}^O$
+$$\text{MHA}(\mathbf{X}) = [\text{head}_1; \ldots; \text{head}_h]\mathbf{W}^O$$
 
-$\text{head}_i = \text{Attention}(\mathbf{X}\mathbf{W}_i^Q, \mathbf{X}\mathbf{W}_i^K, \mathbf{X}\mathbf{W}_i^V)$
+$$\text{head}_i = \text{Attention}(\mathbf{X}\mathbf{W}_i^Q, \mathbf{X}\mathbf{W}_i^K, \mathbf{X}\mathbf{W}_i^V)$$
 
 #### 3.1.2 Feature Integration
 
 Cross-modal feature integration:
 
-$\mathbf{f}_{\text{integrated}} = \sigma(\mathbf{W}_g[\mathbf{f}_{\text{eeg}}; \mathbf{f}_{\text{bio}}] + \mathbf{b}_g)$
+$$\mathbf{f}_{\text{integrated}} = \sigma(\mathbf{W}_g[\mathbf{f}_{\text{eeg}}; \mathbf{f}_{\text{bio}}] + \mathbf{b}_g)$$
 
 ### 3.2 Frequency Analysis Layer
 
@@ -173,18 +175,18 @@ $\mathbf{f}_{\text{integrated}} = \sigma(\mathbf{W}_g[\mathbf{f}_{\text{eeg}}; \
 
 For each frequency band $\beta$:
 
-$\mathbf{P}_{\beta} = \text{FFT}(\mathbf{X}_{\beta})$
-$\mathbf{S}_{\beta} = \text{PSD}(\mathbf{P}_{\beta})$
+$$\mathbf{P}_{\beta} = \text{FFT}(\mathbf{X}_{\beta})$$
+$$\mathbf{S}_{\beta} = \text{PSD}(\mathbf{P}_{\beta})$$
 
 Power ratio computation:
 
-$r_{\beta} = \frac{\sum_{f \in \beta} S(f)}{\sum_f S(f)}$
+$$r_{\beta} = \frac{\sum_{f \in \beta} S(f)}{\sum_f S(f)}$$
 
 #### 3.2.2 Cross-Band Integration
 
 Band feature integration through attention:
 
-$\mathbf{C}_{ij} = \text{softmax}(\frac{\mathbf{Q}_i\mathbf{K}_j^T}{\sqrt{d_k}})\mathbf{V}_j$
+$$\mathbf{C}_{ij} = \text{softmax}(\frac{\mathbf{Q}_i\mathbf{K}_j^T}{\sqrt{d_k}})\mathbf{V}_j$$
 
 ### 3.3 Biometric Correlation Layer
 
@@ -192,14 +194,14 @@ $\mathbf{C}_{ij} = \text{softmax}(\frac{\mathbf{Q}_i\mathbf{K}_j^T}{\sqrt{d_k}})
 
 Correlation computation:
 
-$\rho_{ij} = \frac{\text{cov}(\mathbf{f}_i, \mathbf{b}_j)}{\sigma_{\mathbf{f}_i}\sigma_{\mathbf{b}_j}}$
+$$\rho_{ij} = \frac{\text{cov}(\mathbf{f}_i, \mathbf{b}_j)}{\sigma_{\mathbf{f}_i}\sigma_{\mathbf{b}_j}}$$
 
 #### 3.3.2 Adaptive Gating
 
 Gating mechanism:
 
-$\mathbf{g} = \sigma(\mathbf{W}_g[\mathbf{f}_f; \mathbf{f}_b] + \mathbf{b}_g)$
-$\mathbf{f}_{\text{fused}} = \mathbf{g} \odot \mathbf{f}_f + (1-\mathbf{g}) \odot \mathbf{f}_b$
+$$\mathbf{g} = \sigma(\mathbf{W}_g[\mathbf{f}_f; \mathbf{f}_b] + \mathbf{b}_g)$$
+$$\mathbf{f}_{\text{fused}} = \mathbf{g} \odot \mathbf{f}_f + (1-\mathbf{g}) \odot \mathbf{f}_b$$
 
 ### 3.4 Final Classification Layer
 
@@ -207,17 +209,17 @@ $\mathbf{f}_{\text{fused}} = \mathbf{g} \odot \mathbf{f}_f + (1-\mathbf{g}) \odo
 
 GRU-based processing:
 
-$\mathbf{r}_t = \sigma(\mathbf{W}_r[\mathbf{h}_{t-1}; \mathbf{x}_t])$
-$\mathbf{z}_t = \sigma(\mathbf{W}_z[\mathbf{h}_{t-1}; \mathbf{x}_t])$
-$\mathbf{n}_t = \tanh(\mathbf{W}_n[\mathbf{r}_t \odot \mathbf{h}_{t-1}; \mathbf{x}_t])$
-$\mathbf{h}_t = (1-\mathbf{z}_t) \odot \mathbf{h}_{t-1} + \mathbf{z}_t \odot \mathbf{n}_t$
+$$\mathbf{r}_t = \sigma(\mathbf{W}_r[\mathbf{h}_{t-1}; \mathbf{x}_t])$$
+$$\mathbf{z}_t = \sigma(\mathbf{W}_z[\mathbf{h}_{t-1}; \mathbf{x}_t])$$
+$$\mathbf{n}_t = \tanh(\mathbf{W}_n[\mathbf{r}_t \odot \mathbf{h}_{t-1}; \mathbf{x}_t])$$
+$$\mathbf{h}_t = (1-\mathbf{z}_t) \odot \mathbf{h}_{t-1} + \mathbf{z}_t \odot \mathbf{n}_t$$
 
 #### 3.4.2 Decision Making
 
 Classification with confidence:
 
-$\mathbf{s} = \text{softmax}(\mathbf{W}_d\mathbf{h}_t + \mathbf{b}_d)$
-$c = \sigma(\mathbf{W}_c\mathbf{h}_t + \mathbf{b}_c)$
+$$\mathbf{s} = \text{softmax}(\mathbf{W}_d\mathbf{h}_t + \mathbf{b}_d)$$
+$$c = \sigma(\mathbf{W}_c\mathbf{h}_t + \mathbf{b}_c)$$
 
 ## 4. Complexity Analysis
 
@@ -293,36 +295,36 @@ $c = \sigma(\mathbf{W}_c\mathbf{h}_t + \mathbf{b}_c)$
 ### 5.2 Loss Functions and Optimization
 
 1. Sentiment Analysis Loss:
-   $\mathcal{L}_s = \text{MSE}(\mathbf{V}, \mathbf{V}^*) + \text{MSE}(\mathbf{A}, \mathbf{A}^*) + \lambda_1\|\mathbf{W}\|_1$
+   $$\mathcal{L}_s = \text{MSE}(\mathbf{V}, \mathbf{V}^*) + \text{MSE}(\mathbf{A}, \mathbf{A}^*) + \lambda_1\|\mathbf{W}\|_1$$
+       
+       Temporal Coherence Term:
+       $$\mathcal{L}_{temp} = \sum_{t=1}^T \|\mathbf{V}_t - \mathbf{V}_{t-1}\|_2^2 + \|\mathbf{A}_t - \mathbf{A}_{t-1}\|_2^2$$
    
-   Temporal Coherence Term:
-   $\mathcal{L}_{temp} = \sum_{t=1}^T \|\mathbf{V}_t - \mathbf{V}_{t-1}\|_2^2 + \|\mathbf{A}_t - \mathbf{A}_{t-1}\|_2^2$
-
-2. Frequency Band Loss:
-   $\mathcal{L}_f = \text{CE}(\mathbf{p}, \mathbf{p}^*) + \lambda_2\|\mathbf{W}\|_2^2 + \gamma\|\Delta\mathbf{p}\|_2^2$
+   2. Frequency Band Loss:
+       $$\mathcal{L}_f = \text{CE}(\mathbf{p}, \mathbf{p}^*) + \lambda_2\|\mathbf{W}\|_2^2 + \gamma\|\Delta\mathbf{p}\|_2^2$$
+       
+       Band Correlation Term:
+       $$\mathcal{L}_{band} = -\sum_{i,j} \text{corr}(\mathbf{f}_i, \mathbf{f}_j) \cdot \log(\text{corr}(\mathbf{f}_i, \mathbf{f}_j))$$
    
-   Band Correlation Term:
-   $\mathcal{L}_{band} = -\sum_{i,j} \text{corr}(\mathbf{f}_i, \mathbf{f}_j) \cdot \log(\text{corr}(\mathbf{f}_i, \mathbf{f}_j))$
-
-3. Biometric Integration Loss:
-   $\mathcal{L}_b = -\sum_i \rho_i \log(\hat{\rho}_i) + \lambda_3\text{KL}(p_{\text{eeg}}||p_{\text{bio}})$
+   3. Biometric Integration Loss:
+       $$\mathcal{L}_b = -\sum_i \rho_i \log(\hat{\rho}_i) + \lambda_3\text{KL}(p_{\text{eeg}}||p_{\text{bio}})$$
+       
+       Cross-Modal Alignment:
+       $$\mathcal{L}_{align} = \|\mathbf{M}_{eeg}\mathbf{F}_{eeg} - \mathbf{M}_{bio}\mathbf{F}_{bio}\|_F^2$$
    
-   Cross-Modal Alignment:
-   $\mathcal{L}_{align} = \|\mathbf{M}_{eeg}\mathbf{F}_{eeg} - \mathbf{M}_{bio}\mathbf{F}_{bio}\|_F^2$
-
-4. Combined Loss with Dynamic Weighting:
-   $\mathcal{L} = \alpha(t)\mathcal{L}_s + \beta(t)\mathcal{L}_f + \gamma(t)\mathcal{L}_b + \eta(t)(\mathcal{L}_{temp} + \mathcal{L}_{band} + \mathcal{L}_{align})$
-   
-   Weight Functions:
-   $\alpha(t) = \alpha_0(1 + e^{-t/\tau})^{-1}$
-   $\beta(t) = \beta_0(1 - e^{-t/\tau})$
-   $\gamma(t) = \gamma_0\sin^2(\pi t/2T)$
-   $\eta(t) = \eta_0(1 - e^{-t/\tau})$
+   4. Combined Loss with Dynamic Weighting:
+       $$\mathcal{L} = \alpha(t)\mathcal{L}_s + \beta(t)\mathcal{L}_f + \gamma(t)\mathcal{L}_b + \eta(t)(\mathcal{L}_{temp} + \mathcal{L}_{band} + \mathcal{L}_{align})$$
+       
+       Weight Functions:
+       $$\alpha(t) = \alpha_0(1 + e^{-t/\tau})^{-1}$$
+       $$\beta(t) = \beta_0(1 - e^{-t/\tau})$$
+       $$\gamma(t) = \gamma_0\sin^2(\pi t/2T)$$
+       $$\eta(t) = \eta_0(1 - e^{-t/\tau})$$
 
 5. Optimization Schedule:
-   - Learning Rate: $\eta_t = \eta_0(1 + \gamma t)^{-0.5}$
-   - Momentum: $\beta_t = \beta_{min} + (\beta_{max} - \beta_{min})(1 - e^{-t/\tau})$
-   - Weight Decay: $\lambda_t = \lambda_0(1 - t/T)^{0.5}$
+    - Learning Rate: $$\eta_t = \eta_0(1 + \gamma t)^{-0.5}$$
+    - Momentum: $$\beta_t = \beta_{min} + (\beta_{max} - \beta_{min})(1 - e^{-t/\tau})$$
+    - Weight Decay: $$\lambda_t = \lambda_0(1 - t/T)^{0.5}$$
 
 ## 6. Results
 
