@@ -528,22 +528,28 @@ The vectorizer implements a multi-stage embedding reduction pipeline, as express
 
 1. Cross-Layer Feature Propagation:
    $$p(\mathbf{z}|c) = \sum_{k=1}^K \pi_k \mathcal{N}(\mathbf{z}|\boldsymbol{\mu}_k, \boldsymbol{\Sigma}_k)$$
+
    Technical Note: GMM parameters are learned per layer, with means and covariances initialized from previous layer statistics.
 
-2. Residual Information Transfer:
-   $$\mathcal{L}_{cluster} = -\sum_{i=1}^n \log p(\mathbf{z}_i|c_i) + \alpha\text{PromptSimilarity}(\mathbf{z}_i, p)$$
-   where:
-   $$\text{PromptSimilarity}(\mathbf{z}, p) = \text{cos}(\text{ProjectionHead}(\mathbf{z}), \text{PromptEmbed}(p))$$
-   Technical Note: ProjectionHead maintains dimensionality consistency across layers using learned linear projections.
+2. Residual Information Transfer:  
+   $\mathcal{L}_{cluster} = -\sum_{i=1}^n \log p(\mathbf{z}_i|c_i) + \alpha \cdot \text{PromptSimilarity}(\mathbf{z}_i, p)$  
+   where:  
+   $\text{PromptSimilarity}(\mathbf{z}, p) = \text{cos}(\text{ProjectionHead}(\mathbf{z}), \text{PromptEmbed}(p))$
+     
+   Technical Note: ProjectionHead maintains dimensionality consistency across layers using learned linear projections.  
 
-3. Adaptive Feature Fusion:
-   $$\mathcal{L}_{subgroup} = \sum_{g \in \mathcal{G}} \beta_g\text{ContrastiveLoss}(\mathbf{Z}_g, p)$$
-   $$\text{ContrastiveLoss}(\mathbf{Z}, p) = -\log\frac{\exp(\text{sim}(\mathbf{z}, p)/\tau)}{\sum_{j}\exp(\text{sim}(\mathbf{z}_j, p)/\tau)}$$
+
+4. Adaptive Feature Fusion:  
+   $\mathcal{L}_{subgroup} = \sum_{g \in \mathcal{G}} \beta_g \cdot \text{ContrastiveLoss}(\mathbf{Z}_g, p)$  
+   where:  
+   $\text{ContrastiveLoss}(\mathbf{Z}, p) = -\log \frac{\exp(\text{sim}(\mathbf{z}, p)/\tau)}{\sum_{j} \exp(\text{sim}(\mathbf{z}_j, p)/\tau)}$  
+
    Technical Note: Temperature parameter τ controls the sharpness of the similarity distribution, typically set to 0.07.
 
-4. Layer-wise Attention Routing:
+5. Layer-wise Attention Routing:
    $$\beta_g = \text{softmax}(\text{Relevance}(g, p))$$
    $$\text{Relevance}(g, p) = \text{Attention}(\text{GroupEmbed}(g), \text{PromptEmbed}(p))$$
+   
    Technical Note: GroupEmbed uses a learned embedding table with 128d per group, allowing efficient group-prompt matching.
 
 #### 4.2.3 Subclass-Based Scaling
@@ -583,7 +589,7 @@ The system's computational complexity scales with subclass size $x$ rather than 
    - Shared Memory: $O(bd)$ per block
    - Register Usage: $O(d)$ per thread
 
-### 4.3 Cache Efficiency
+### 4.4 Cache Efficiency
 
 1. Hit Rate Function:
    $H(s) = 1 - \frac{1}{1 + e^{-\alpha(s-s_0)}}$
@@ -612,26 +618,26 @@ The system's computational complexity scales with subclass size $x$ rather than 
 
 ### 5.2 Loss Functions and Optimization
 
-1. Sentiment Analysis Loss:
-   $$\mathcal{L}_s = \text{MSE}(\mathbf{V}, \mathbf{V}^*) + \text{MSE}(\mathbf{A}, \mathbf{A}^*) + \lambda_1\|\mathbf{W}\|_1$$
-       
-       Temporal Coherence Term:
-       $$\mathcal{L}_{temp} = \sum_{t=1}^T \|\mathbf{V}_t - \mathbf{V}_{t-1}\|_2^2 + \|\mathbf{A}_t - \mathbf{A}_{t-1}\|_2^2$$
-   
-   2. Frequency Band Loss:
-       $$\mathcal{L}_f = \text{CE}(\mathbf{p}, \mathbf{p}^*) + \lambda_2\|\mathbf{W}\|_2^2 + \gamma\|\Delta\mathbf{p}\|_2^2$$
-       
-       Band Correlation Term:
-       $$\mathcal{L}_{band} = -\sum_{i,j} \text{corr}(\mathbf{f}_i, \mathbf{f}_j) \cdot \log(\text{corr}(\mathbf{f}_i, \mathbf{f}_j))$$
-   
-   3. Biometric Integration Loss:
-       $$\mathcal{L}_b = -\sum_i \rho_i \log(\hat{\rho}_i) + \lambda_3\text{KL}(p_{\text{eeg}}||p_{\text{bio}})$$
-       
-       Cross-Modal Alignment:
-       $$\mathcal{L}_{align} = \|\mathbf{M}_{eeg}\mathbf{F}_{eeg} - \mathbf{M}_{bio}\mathbf{F}_{bio}\|_F^2$$
-   
-   4. Combined Loss with Dynamic Weighting:
-       $$\mathcal{L} = \alpha(t)\mathcal{L}_s + \beta(t)\mathcal{L}_f + \gamma(t)\mathcal{L}_b + \eta(t)(\mathcal{L}_{temp} + \mathcal{L}_{band} + \mathcal{L}_{align})$$
+1. Sentiment Analysis Loss:  
+   $\mathcal{L}_s = \text{MSE}(\mathbf{V}, \mathbf{V}^*) + \text{MSE}(\mathbf{A}, \mathbf{A}^*) + \lambda_1\|\mathbf{W}\|_1$  
+
+   Temporal Coherence Term:  
+   $\mathcal{L}_{temp} = \sum_{t=1}^{T} \|\mathbf{V}_t - \mathbf{V}_{t-1}\|_2^2 + \|\mathbf{A}_t - \mathbf{A}_{t-1}\|_2^2$  
+
+2. Frequency Band Loss:  
+   $\mathcal{L}_f = \text{CE}(\mathbf{p}, \mathbf{p}^*) + \lambda_2\|\mathbf{W}\|_2^2 + \gamma\|\Delta\mathbf{p}\|_2^2$  
+
+   Band Correlation Term:  
+   $\mathcal{L}_{band} = -\sum_{i,j} \text{corr}(\mathbf{f}_i, \mathbf{f}_j) \cdot \log(\text{corr}(\mathbf{f}_i, \mathbf{f}_j))$  
+
+3. Biometric Integration Loss:  
+   $\mathcal{L}_b = -\sum_i \rho_i \log(\hat{\rho}_i) + \lambda_3\text{KL}(p_{\text{eeg}}||p_{\text{bio}})$  
+
+   Cross-Modal Alignment:  
+   $\mathcal{L}_{align} = \|\mathbf{M}_{eeg}\mathbf{F}_{eeg} - \mathbf{M}_{bio}\mathbf{F}_{bio}\|_F^2$  
+
+4. Combined Loss with Dynamic Weighting:  
+   $\mathcal{L} = \alpha(t)\mathcal{L}_s + \beta(t)\mathcal{L}_f + \gamma(t)\mathcal{L}_b + \eta(t)(\mathcal{L}_{temp} + \mathcal{L}_{band} + \mathcal{L}_{align})$  
        
        Weight Functions:
        $$\alpha(t) = \alpha_0(1 + e^{-t/\tau})^{-1}$$
@@ -812,10 +818,10 @@ graph LR
         style O3 fill:#9f9,stroke:#333,stroke-width:2px,color:#000
         style O4 fill:#9f9,stroke:#333,stroke-width:2px,color:#000
 
-        B1[SVM/LDA<br>ITR: 1.2 bits/s<br>Binary States<br>Fixed Boundaries] --> O1[Ours<br>ITR: 4.2 bits/s<br>∞-dim States<br>Dynamic Boundaries]
-        B2[Neural Networks<br>4-8 Classes<br>75% Accuracy<br>Static Patterns] --> O2[Ours<br>Unlimited Classes<br>92% Accuracy<br>Evolving Patterns]
-        B3[Deep Learning<br>Fixed Architecture<br>0.65 Efficiency<br>Batch Processing] --> O3[Ours<br>Adaptive Architecture<br>0.87 Efficiency<br>Continuous Processing]
-        B4[k-NN/Bayesian<br>Simple Commands<br>2.5s Latency<br>Limited Context] --> O4[Ours<br>Complex Thoughts<br>1.2s Latency<br>Full Context]
+        B1["SVM/LDA\nITR: 1.2 bits/s\nBinary States\nFixed Boundaries"] --> O1["Ours\nITR: 4.2 bits/s\n∞-dim States\nDynamic Boundaries"]
+        B2["Neural Networks\n4-8 Classes\n75% Accuracy\nStatic Patterns"] --> O2["Ours\nUnlimited Classes\n92% Accuracy\nEvolving Patterns"]
+        B3["Deep Learning\nFixed Architecture\n0.65 Efficiency\nBatch Processing"] --> O3["Ours\nAdaptive Architecture\n0.87 Efficiency\nContinuous Processing"]
+        B4["k-NN/Bayesian\nSimple Commands\n2.5s Latency\nLimited Context"] --> O4["Ours\nComplex Thoughts\n1.2s Latency\nFull Context"]
     end
 
     subgraph "Architectural Evolution"
@@ -823,14 +829,14 @@ graph LR
         style M2 fill:#ddd,stroke:#333,stroke-width:2px,color:#000
         style M3 fill:#ddd,stroke:#333,stroke-width:2px,color:#000
 
-        M1[Traditional BCIs<br>Single Algorithm<br>Fixed Classes<br>O(n) Scaling] --> M2[SOTA 2024<br>Hybrid Models<br>Limited States<br>O(n log n) Scaling] --> M3[Ours 2025<br>Hierarchical System<br>Infinite States<br>O(log n) Scaling]
+        M1["Traditional BCIs\nSingle Algorithm\nFixed Classes\nO(n) Scaling"] --> M2["SOTA 2024\nHybrid Models\nLimited States\nO(n log n) Scaling"] --> M3["Ours 2025\nHierarchical System\nInfinite States\nO(log n) Scaling"]
         
-        M1 -.-|"Complexity +200%<br>States ×4"| M2
-        M2 -.-|"Complexity +500%<br>States →∞"| M3
+        M1 -.->|"Complexity +200%\nStates ×4"| M2
+        M2 -.->|"Complexity +500%\nStates →∞"| M3
     end
 ```
 
-Benchmark Details:
+#### Architectures on Iterative Hierarchical Subclustering
 ```
 Algorithm Comparison:
 - Traditional Approaches:
@@ -965,7 +971,7 @@ This enhanced efficiency emerges from our system's ability to:
 
 ```
 
-#### 6.3.8 Benchmark Methodology and Analysis
+#### 6.3.7 Benchmark Methodology and Analysis
 
 To ensure rigorous evaluation of our system's capabilities, we developed a comprehensive benchmark framework that measures performance across multiple dimensions:
 
@@ -1032,17 +1038,18 @@ To ensure rigorous evaluation of our system's capabilities, we developed a compr
      * Zero-drop guarantee
    ```
 
-The results demonstrate our system's transformative advantages:
+The results demonstrate our system's substantive advantages:
 
-3. System Efficiency:
+System Efficiency:
    - 99.9% reduction in computational overhead
    - 85% decrease in memory utilization
    - Logarithmic scaling with thought complexity
    - Adaptive resource allocation
 
+
 These benchmarks establish Synaptic Engine as a fundamental advancement in BCI technology, demonstrating capabilities that were previously thought computationally intractable in terms of both thought complexity processing and operational efficiency.
 
-#### 6.3.9 System Reliability and Error Recovery
+#### 6.3.8 System Reliability and Error Recovery
 
 Our hierarchical clustering approach achieved remarkable thought stream coherence of 96%, surpassing state-of-the-art baselines by 33%. This improvement stems from our novel error recovery mechanism, which demonstrated 99.9% effectiveness through relative error minimization:
 
@@ -1059,7 +1066,7 @@ The system achieved 99.99% reliability through:
 These mechanisms collectively reduced inference latency by 80% compared to baseline approaches while maintaining classification accuracy. The combination of rapid response times and robust error recovery makes our system particularly suitable for real-world BCI applications requiring continuous thought stream processing.
 
 
-##Benchmark Conclusion:
+#### Benchmark Conclusions
 These metrics demonstrate Synaptic Engine's fundamental advancement in BCI technology, achieving unprecedented performance while maintaining computational efficiency. The system's ability to process complex semantic thoughts at high speeds with superior accuracy establishes a new paradigm in human-computer interaction through thought.
 This dramatic improvement in both thought complexity and processing efficiency establishes Synaptic Engine as a fundamental breakthrough in BCI technology, enabling previously impossible applications in human-computer interaction through thought.
 
@@ -1084,7 +1091,7 @@ Our system operates in a rich combinatorial space defined by interactions betwee
    - Verb Selection: O(V) for linear choice
    - Total Growth: O(N²V)
 
-### 7.3 Hierarchical Reduction Impact
+### 7.2 Hierarchical Reduction Impact
 
 Our hierarchical approach significantly improves upon this raw combinatorial scaling:
 
@@ -1105,7 +1112,7 @@ Our hierarchical approach significantly improves upon this raw combinatorial sca
 
 This analysis demonstrates how our hierarchical approach transforms an exponentially growing thought space into a manageable computational problem while preserving the semantic richness of complex thoughts.
 
-### 7.4 Practical Implementation and Results
+### 7.3 Practical Implementation and Results
 
 Our system successfully manages a thought space of 99,900,000 possible combinations through intelligent hierarchical reduction. This massive combinatorial space arises from selecting 2 objects from 1000 possibilities (999,000 permutations) and combining each with one of 100 possible verbs. Traditional approaches would require enormous computational resources to handle this space directly.
 
