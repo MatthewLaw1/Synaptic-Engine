@@ -2,7 +2,7 @@
 
 ## Abstract
 
-###The highest Information Transfer Rate ever recorded for non-invasive BCIs
+### The highest Information Transfer Rate ever recorded for non-invasive BCIs
 
 We present Synaptic Engine, a novel neural processing framework that implements hierarchical reduction for thought state computation through multi-modal signal integration. Our architecture introduces a dynamic subclass formation mechanism that enables continuous adaptation in hyper-dimensional thought spaces, achieving 92% classification accuracy across complex cognitive tasks with logarithmic scaling of compute. The system employs an intelligent agent-based reasoning process for optimizing classification boundaries and memory utilization. Through dynamic clustering generation through a probability hueristic based on distance in vector space, we perform unsupervised clustering in a feed forward loop that consistently narrows the remaining thought space by an average factor of 7.7x with each layered subclustering resulting in logarithmic computational scaling while maintaining temporal coherence. We demonstrate significant improvements in thought classification performance (8.3 bits/s ITR) compared to traditional fixed-class approaches (1.2 bits/s ITR) and see categorical improvements in thought complexity and specificity. Key innovations include adaptive vector space evolution, real-time boundary refinement, and efficient memory management through selective vector storage. We propose this framework as a realtime thought identification through a text stream and coherent video generation through text-unified instruction.
 
@@ -23,21 +23,20 @@ We successfully piloted the architecture with a thought space of 99,900,000 thou
 
 The challenge of thought state classification in brain-computer interfaces has traditionally been constrained by fixed classification boundaries and discrete state spaces. This limits both the number of thought, and the specificity and information density of thought identification. Given an input space $\mathcal{X} = \{\mathbf{x}_i\}_{i=1}^n$ comprising EEG signals $\mathbf{E} \in \mathbb{R}^{c \times t}$ and biometric signals $\mathbf{B} \in \mathbb{R}^{d}$, we aim to compute a continuous thought state mapping $f: \mathcal{X} \rightarrow \mathcal{T}$ where $\mathcal{T}$ represents a hyper-dimensional thought space manifold. This manifold scales to theoretical maximums of all possible thoughts of structure A∘q(B), where A and B are objects and q is an action applied to B (Cat(A) sits(q) on table(B)). The mapping of related thoughts must adapt dynamically to evolving thought patterns while maintaining computational efficiency. Set clusters cannot efficiently identify similar thought groups for thoughts that are similar in vector space to multiple thought groups but not any one specifically. Thus, revectorization is required to both accurately identify these forms of hyperspecific thought, as well as optimally reducing the thought space by dropping all low probability subclusters and even unprobable objects within those clusters.
 
-
-![Synaptic Engine Architecture](frontend/public/images/Screenshot%202025-02-21%20at%2005.08.40.png)
+![synapticengine](https://photos.google.com/share/AF1QipMBPVnp0By4Kfg-pAnhSmRtjc7BQ4Y60APshtmCNacRahG2AZsauma0nhle7veSPQ?key=QmVNSFlZYXRMdlFGaTMtaUdGQ3ZQMDZKYzJmYXB3)
 
 ### 1.2 Technical Significance
 
 Our framework for thought state computation addresses key challenges in processing high-dimensional neural and biometric signals. We identify several key pitfalls that prevent substantive adoption of emerging BCI technologies. First we establish that BCIs are only valuable if they:
 
 
-####They provide a faster, higher fidelity, and integrated interface compared to traditional technologies. 
+#### They provide a faster, higher fidelity, and integrated interface compared to traditional technologies. 
 
 
 
 We therefore observe high compute costs, espescially at scale of the billions of thoughts in thought space that any given user would have. This prevents meaningful model deployments in cases where Brain-machine interfaces offer a unique approach to solving user-induced latency. Recent efforts to reduce inference time by intercepting thought before the user can even type out their thoughts are therefore slower than current HCIs. Other applications in facilitating ease of communication for users with communications difficulties, such as stroke-induced aphasia require near instantanous thought identification, rendering these non-invasive interface solutions less viable for core users.
 
-####It is important to note that the thought space increases factorially as new objects are added. This results in functional limits that prevent eventual scaling to humanistic nueromorphic reasoning models through thought emulation based on the classification mechanistic model. For further development of humanistic reasoning models, this complexity issue needs a drastic solution, which we propose here.
+#### It is important to note that the thought space increases factorially as new objects are added. This results in functional limits that prevent eventual scaling to humanistic nueromorphic reasoning models through thought emulation based on the classification mechanistic model. For further development of humanistic reasoning models, this complexity issue needs a drastic solution, which we propose here.
 
 
 Furthermore, BCIs that perform specific thought identificiation with low latency require invasive deployment. These devices interface directly into nueron networks, or require a large number of sensitive contact electrodes in order to perform inference. These approaches suffer from expensive initial product cost and prevent seamless adoption on a consumer scale. Data fusion accross multiple sensors means that they are often limited to basic health functions, whereas reasoning requires a more adaptive set of tools due to the lack of a predefined task (tasks are reasoned out through higher level executive function for each request rather than set beforehand). Bioinformatic interfaces that carry additional critical information also suffer from poor integration rates due to the lack of cohesive data fusion and its low relevancy in hyperspecific, static tasks. 
@@ -47,7 +46,7 @@ We also observe fundamental information limitations. Clasification algorithms th
 
 
 
-###OUR SOLUTION
+### OUR SOLUTION
 We address multimodal data source through a fusion mechanism that combines EEG and biometric signals, ensuring cross-modal alignment through adaptive attention mechanisms. This approach allows for the dynamic weighting of features based on their temporal relevance, enabling a more context-aware representation of thought states. Our preprocessing pipeline for artifact filtering and biometric indicators allows us to rapidly decrease the thought space before any post processing of our broader iterative subclustering algorithm.
 
 Temporal coherence is maintained through an iterative state space refinement process that continuously updates and optimizes the representation of thought states over time. Adaptive boundary adjustment within the vector space ensures that evolving cognitive states remain accurately classified, while real-time optimization techniques dynamically refine classification regions to account for changing neural patterns. These mechanisms contribute to a more stable and accurate thought state trajectory, reducing classification drift and enhancing system reliability.
@@ -340,7 +339,7 @@ graph TD
 
 3. Subclass-Specific Processing:
    ```
-   For each detected subclass S_i:
+   For each detected subclass S:
    1. Extract relevant features using pattern-specific masks
    2. Apply subclass-specific transformations
    3. Compute local and global coherence metrics
