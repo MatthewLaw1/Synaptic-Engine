@@ -229,7 +229,7 @@ where $\mathcal{L}_i$ represents the i-th layer transformation.
 
 Each layer achieves progressive dimensionality reduction while maintaining information density:
 
-![equation](https://latex.codecogs.com/svg.image?$$\text{Density}_i=\frac{\text{Information}_i}{\text{Dimension}i}\geq\text{Density}{i-1}$$)
+![equation](https://latex.codecogs.com/png.image?\dpi{110}$$\text{Density}_i=\frac{\text{Information}_i}{\text{Dimension}i}\geq\text{Density}{i-1}$$)
 
 where Information is measured in bits and Dimension represents feature space size.
 
