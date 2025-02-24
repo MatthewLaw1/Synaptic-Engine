@@ -4,7 +4,9 @@
 
 ### The highest Information Transfer Rate ever recorded for non-invasive BCIs
 
-We present Synaptic Engine, a novel neural processing framework that implements hierarchical reduction for thought state computation through multi-modal signal integration. Our architecture introduces a dynamic subclass formation mechanism that enables continuous adaptation in hyper-dimensional thought spaces, achieving 92% classification accuracy across complex cognitive tasks with logarithmic scaling of compute. The system employs an intelligent agent-based reasoning process for optimizing classification boundaries and memory utilization. Through dynamic clustering generation through a probability hueristic based on distance in vector space, we perform unsupervised clustering in a feed forward loop that consistently narrows the remaining thought space by an average factor of 7.7x with each layered subclustering resulting in logarithmic computational scaling while maintaining temporal coherence. We demonstrate significant improvements in thought classification performance (8.3 bits/s ITR) compared to traditional fixed-class approaches (1.2 bits/s ITR) and see categorical improvements in thought complexity and specificity. Key innovations include adaptive vector space evolution, real-time boundary refinement, and efficient memory management through selective vector storage. We propose this framework as a realtime thought identification through a text stream and coherent video generation through text-unified instruction.
+We present Synaptic Engine, a novel neural processing framework that implements hierarchical reduction for thought state computation through multi-modal signal integration. Our architecture introduces a dynamic subclass formation mechanism that enables continuous adaptation in hyper-dimensional thought spaces, achieving 92% classification accuracy across complex cognitive tasks with logarithmic scaling of compute. 
+
+The system employs an intelligent agent-based reasoning process for optimizing classification boundaries and memory utilization. Through dynamic clustering generation through a probability hueristic based on distance in vector space, we perform unsupervised clustering in a feed forward loop that consistently narrows the remaining thought space by an average factor of 7.7x with each layered subclustering resulting in logarithmic computational scaling while maintaining temporal coherence. We demonstrate significant improvements in thought classification performance (8.3 bits/s ITR) compared to traditional fixed-class approaches (1.2 bits/s ITR) and see categorical improvements in thought complexity and specificity. Key innovations include adaptive vector space evolution, real-time boundary refinement, and efficient memory management through selective vector storage. We propose this framework as a realtime thought identification through a text stream and coherent video generation through text-unified instruction.
 
 
 We successfully piloted the architecture with a thought space of 99,900,000 thoughts, where we demonstrate 92% accuracy with only 2 seconds of compute and record the highest information transfer rate ever recorded for non-invasive BCIs within 2 seconds of compute. This framework therefore opens up critical ground for BCI in realtime applications including:
@@ -21,9 +23,12 @@ We successfully piloted the architecture with a thought space of 99,900,000 thou
 
 ### 1.1 Problem Formulation
 
-The challenge of thought state classification in brain-computer interfaces has traditionally been constrained by fixed classification boundaries and discrete state spaces. This limits both the number of thought, and the specificity and information density of thought identification. Given an input space $\mathcal{X} = \{\mathbf{x}_i\}_{i=1}^n$ comprising EEG signals $\mathbf{E} \in \mathbb{R}^{c \times t}$ and biometric signals $\mathbf{B} \in \mathbb{R}^{d}$, we aim to compute a continuous thought state mapping $f: \mathcal{X} \rightarrow \mathcal{T}$ where $\mathcal{T}$ represents a hyper-dimensional thought space manifold. This manifold scales to theoretical maximums of all possible thoughts of structure A∘q(B), where A and B are objects and q is an action applied to B (Cat(A) sits(q) on table(B)). The mapping of related thoughts must adapt dynamically to evolving thought patterns while maintaining computational efficiency. Set clusters cannot efficiently identify similar thought groups for thoughts that are similar in vector space to multiple thought groups but not any one specifically. Thus, revectorization is required to both accurately identify these forms of hyperspecific thought, as well as optimally reducing the thought space by dropping all low probability subclusters and even unprobable objects within those clusters.
+The challenge of thought state classification in brain-computer interfaces has traditionally been constrained by fixed classification boundaries and discrete state spaces. This limits both the number of thought, and the specificity and information density of thought identification. Given an input space comprising EEG signals $\mathbf{E} \in \mathbb{R}^{c \times t}$ and biometric signals $\mathbf{B} \in \mathbb{R}^{d}$, we aim to compute a continuous thought state mapping $f: \mathcal{X} \rightarrow \mathcal{T}$ where $\mathcal{T}$ represents a hyper-dimensional thought space manifold. 
 
-![synapticengine](https://photos.google.com/share/AF1QipMBPVnp0By4Kfg-pAnhSmRtjc7BQ4Y60APshtmCNacRahG2AZsauma0nhle7veSPQ?key=QmVNSFlZYXRMdlFGaTMtaUdGQ3ZQMDZKYzJmYXB3)
+This manifold scales to theoretical maximums of all possible thoughts of structure A∘q(B), where A and B are objects and q is an action applied to B (Cat(A) sits(q) on table(B)). The mapping of related thoughts must adapt dynamically to evolving thought patterns while maintaining computational efficiency. Set clusters cannot efficiently identify similar thought groups for thoughts that are similar in vector space to multiple thought groups but not any one specifically. Thus, revectorization is required to both accurately identify these forms of hyperspecific thought, as well as optimally reducing the thought space by dropping all low probability subclusters and even unprobable objects within those clusters.
+
+![Synaptic Engine Architecture](frontend/public/images/Screenshot%202025-02-21%20at%2005.08.40.png)
+
 
 ### 1.2 Technical Significance
 
@@ -224,7 +229,7 @@ where $\mathcal{L}_i$ represents the i-th layer transformation.
 
 Each layer achieves progressive dimensionality reduction while maintaining information density:
 
-$$\text{Density}_i = \frac{\text{Information}_i}{\text{Dimension}_i} \geq \text{Density}_{i-1}$$
+![equation](https://latex.codecogs.com/svg.image?$$\text{Density}_i=\frac{\text{Information}_i}{\text{Dimension}i}\geq\text{Density}{i-1}$$)
 
 where Information is measured in bits and Dimension represents feature space size.
 
