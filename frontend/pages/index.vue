@@ -1,11 +1,5 @@
 <template>
-  <div>🚧</div>
+  <div class="flex items-center justify-center min-h-screen">
+    <div>Loading...</div>
+  </div>
 </template>
-<script setup lang="ts">
-definePageMeta({
-  middleware: (_to, _from) => {
-    return "/about";
-  },
-});
-</script>
-  

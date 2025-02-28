@@ -1,6 +1,20 @@
 <template>
   <div class="flex items-center aspect-video">
     <svg class="h-[450%]" viewBox="0 0 800 800" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="lighting-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#FFD700" />
+          <stop offset="100%" style="stop-color:#FFA500" />
+        </linearGradient>
+        <linearGradient id="gray-gradient-1" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#808080" />
+          <stop offset="100%" style="stop-color:#404040" />
+        </linearGradient>
+        <linearGradient id="gray-gradient-2" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#808080" />
+          <stop offset="100%" style="stop-color:#404040" />
+        </linearGradient>
+      </defs>
       <!-- Lightning bolt (moved right and scaled) -->
       <g transform="translate(50, 125) scale(0.9)">
         <path d="M131.011 325.214C127.337 323.689 126.829 318.692 130.121 316.459L229.841 248.803C234.371 245.73 239.836 251.124 236.822 255.694L200.776 310.34C199.047 312.961 200.133 316.507 203.032 317.711L250.633 337.471C254.307 338.996 254.815 343.993 251.523 346.227L151.803 413.882C147.273 416.956 141.808 411.561 144.822 406.992L180.868 352.345C182.597 349.725 181.511 346.178 178.611 344.974L131.011 325.214Z" fill="url(#lighting-gradient)"/>
