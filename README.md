@@ -1,12 +1,11 @@
 # Synaptic Engine: A Hierarchical Neural Processing Framework for Multi-Modal Thought Space Computation
 
+![image](  https://lh3.googleusercontent.com/d/1lIkIKLNySYPOIeuZOCSKTDaiC4zNsdM3=w1000)
 ## Abstract
 
 ### The highest Information Transfer Rate ever recorded for non-invasive BCIs
 
-We present Synaptic Engine, a novel neural processing framework that implements hierarchical reduction for thought state computation through multi-modal signal integration. Our architecture introduces a dynamic subclass formation mechanism that enables continuous adaptation in hyper-dimensional thought spaces, achieving 92% classification accuracy across complex cognitive tasks with logarithmic scaling of compute. 
-
-The system employs an intelligent agent-based reasoning process for optimizing classification boundaries and memory utilization. Through dynamic clustering generation through a probability hueristic based on distance in vector space, we perform unsupervised clustering in a feed forward loop that consistently narrows the remaining thought space by an average factor of 7.7x with each layered subclustering resulting in logarithmic computational scaling while maintaining temporal coherence. We demonstrate significant improvements in thought classification performance (8.3 bits/s ITR) compared to traditional fixed-class approaches (1.2 bits/s ITR) and see categorical improvements in thought complexity and specificity. Key innovations include adaptive vector space evolution, real-time boundary refinement, and efficient memory management through selective vector storage. We propose this framework as a realtime thought identification through a text stream and coherent video generation through text-unified instruction.
+We present Synaptic Engine, a novel neural processing framework that implements hierarchical reduction for thought state computation through multi-modal signal integration. Recent [initiatives](https://ai.meta.com/research/publications/brain-to-text-decoding-a-non-invasive-approach-via-typing/) have focused on optimizing Brain Computer Interfaces for small predefined objects that carry little information per entity (ie, individual characters or a 2d motion vector for mouse movement). Our architecture revolutionizes these incremental approaches and introduces a dynamic subclass formation mechanism that enables continuous adaptation in hyper-dimensional thought spaces, achieving 92% classification accuracy across complex cognitive tasks with logarithmic scaling of compute. The system employs an intelligent agent-based reasoning process for optimizing classification boundaries and memory utilization. Through dynamic clustering generation through a probability hueristic based on distance in vector space, we perform unsupervised clustering in a feed forward loop that consistently narrows the remaining thought space by an average factor of 7.7x with each layered subclustering resulting in logarithmic computational scaling while maintaining temporal coherence. We demonstrate significant improvements in thought classification performance (8.3 bits/s ITR) compared to traditional fixed-class approaches (1.2 bits/s ITR) and see categorical improvements in thought complexity and specificity. Key innovations include adaptive vector space evolution, real-time boundary refinement, and efficient memory management through selective vector storage. We propose this framework as a realtime thought identification through a text stream and coherent video generation through text-unified instruction.
 
 
 We successfully piloted the architecture with a thought space of 99,900,000 thoughts, where we demonstrate 92% accuracy with only 2 seconds of compute and record the highest information transfer rate ever recorded for non-invasive BCIs within 2 seconds of compute. This framework therefore opens up critical ground for BCI in realtime applications including:
@@ -14,7 +13,7 @@ We successfully piloted the architecture with a thought space of 99,900,000 thou
 1. Realtime communication for those with impairments limiting both speaking ability and ability to understand speech and language (aphasia, speech impediments...) through informed image generation
 2. Seamless communication with near perfect fidelity by allowing anyone to translate their thoughts exactly through an image through informed image generation, providing for coherent visual output.
 
-#### Furthermore, Synaptic Engine serves as a foundation to integrate nueromorphic SNNs for thought simulation distilled on thought identification outputs, allowing for more realistic SNNs trained directly on user EEG data and scalable to the massive thought spaces that are necesary to create higher reasoning LLMS.
+#### Furthermore, Synaptic Engine serves as a foundation to integrate nueromorphic SNNs for thought simulation distilled on thought identification outputs, allowing for more realistic SNNs trained directly on user EEG data and scalable to the massive thought spaces that are necessary to create higher reasoning LLMS.
 
 
 
@@ -23,12 +22,7 @@ We successfully piloted the architecture with a thought space of 99,900,000 thou
 
 ### 1.1 Problem Formulation
 
-The challenge of thought state classification in brain-computer interfaces has traditionally been constrained by fixed classification boundaries and discrete state spaces. This limits both the number of thought, and the specificity and information density of thought identification. Given an input space comprising EEG signals $\mathbf{E} \in \mathbb{R}^{c \times t}$ and biometric signals $\mathbf{B} \in \mathbb{R}^{d}$, we aim to compute a continuous thought state mapping $f: \mathcal{X} \rightarrow \mathcal{T}$ where $\mathcal{T}$ represents a hyper-dimensional thought space manifold. 
-
-This manifold scales to theoretical maximums of all possible thoughts of structure A∘q(B), where A and B are objects and q is an action applied to B (Cat(A) sits(q) on table(B)). The mapping of related thoughts must adapt dynamically to evolving thought patterns while maintaining computational efficiency. Set clusters cannot efficiently identify similar thought groups for thoughts that are similar in vector space to multiple thought groups but not any one specifically. Thus, revectorization is required to both accurately identify these forms of hyperspecific thought, as well as optimally reducing the thought space by dropping all low probability subclusters and even unprobable objects within those clusters.
-
-![Synaptic Engine Architecture](frontend/public/images/Screenshot%202025-02-21%20at%2005.08.40.png)
-
+The challenge of thought state classification in brain-computer interfaces has traditionally been constrained by fixed classification boundaries and discrete state spaces. This limits both the number of thought, and the specificity and information density of thought identification. Given an input space $\mathcal{X} = \{\mathbf{x}_i\}_{i=1}^n$ comprising EEG signals $\mathbf{E} \in \mathbb{R}^{c \times t}$ and biometric signals $\mathbf{B} \in \mathbb{R}^{d}$, we aim to compute a continuous thought state mapping $f: \mathcal{X} \rightarrow \mathcal{T}$ where $\mathcal{T}$ represents a hyper-dimensional thought space manifold. This manifold scales to theoretical maximums of all possible thoughts of structure A∘q(B), where A and B are objects and q is an action applied to B (Cat(A) "sits on(q)" table(B)). The mapping of related thoughts must adapt dynamically to evolving thought patterns while maintaining computational efficiency. Set clusters cannot efficiently identify similar thought groups for thoughts that are similar in vector space to multiple thought groups but not any one specifically. Thus, revectorization is required to both accurately identify these forms of hyper-specific thought, as well as optimally reducing the thought space by dropping all low probability subclusters and even improbable objects within those clusters.
 
 ### 1.2 Technical Significance
 
@@ -39,19 +33,21 @@ Our framework for thought state computation addresses key challenges in processi
 
 
 
-We therefore observe high compute costs, espescially at scale of the billions of thoughts in thought space that any given user would have. This prevents meaningful model deployments in cases where Brain-machine interfaces offer a unique approach to solving user-induced latency. Recent efforts to reduce inference time by intercepting thought before the user can even type out their thoughts are therefore slower than current HCIs. Other applications in facilitating ease of communication for users with communications difficulties, such as stroke-induced aphasia require near instantanous thought identification, rendering these non-invasive interface solutions less viable for core users.
+We therefore observe high compute costs, especially at scale of the billions of thoughts in thought space that any given user would have. This prevents meaningful model deployments in cases where Brain-machine interfaces offer a unique approach to solving user-induced latency. Recent efforts to reduce inference time by intercepting thought before the user can even type out their thoughts are therefore slower than current HCIs. Other applications in facilitating ease of communication for users with communications difficulties, such as stroke-induced aphasia require near instantaneous thought identification, rendering these non-invasive interface solutions less viable for core users.
 
 #### It is important to note that the thought space increases factorially as new objects are added. This results in functional limits that prevent eventual scaling to humanistic nueromorphic reasoning models through thought emulation based on the classification mechanistic model. For further development of humanistic reasoning models, this complexity issue needs a drastic solution, which we propose here.
 
 
-Furthermore, BCIs that perform specific thought identificiation with low latency require invasive deployment. These devices interface directly into nueron networks, or require a large number of sensitive contact electrodes in order to perform inference. These approaches suffer from expensive initial product cost and prevent seamless adoption on a consumer scale. Data fusion accross multiple sensors means that they are often limited to basic health functions, whereas reasoning requires a more adaptive set of tools due to the lack of a predefined task (tasks are reasoned out through higher level executive function for each request rather than set beforehand). Bioinformatic interfaces that carry additional critical information also suffer from poor integration rates due to the lack of cohesive data fusion and its low relevancy in hyperspecific, static tasks. 
+Furthermore, BCIs that perform specific thought identification with low latency require invasive deployment. These devices interface directly into neuron networks, or require a large number of sensitive contact electrodes in order to perform inference. These approaches suffer from expensive initial product cost and prevent seamless adoption on a consumer scale. Data fusion across multiple sensors means that they are often limited to basic health functions, whereas reasoning requires a more adaptive set of tools due to the lack of a predefined task (tasks are reasoned out through higher level executive function for each request rather than set beforehand). Bioinformatic interfaces that carry additional critical information also suffer from poor integration rates due to the lack of cohesive data fusion and its low relevancy in hyper-specific, static tasks. 
 
 
-We also observe fundamental information limitations. Clasification algorithms that use set clusters or hard-trained ML approaches sacrifice on the amount of possible thoughts within the searchable thought space in order to maintain distinctness in different thought clusters. This means that any increase in the size of the thought space fundamentally reduces the overall specificity, and therefore information of classified thoughts. Current technologies are therefore limited to small information thoughts such as indivividual characters or cartesian coordinate movements. 
+We also observe fundamental information limitations. Classification algorithms that use set clusters or hard-trained ML approaches sacrifice on the amount of possible thoughts within the searchable thought space in order to maintain distinctness in different thought clusters. This means that any increase in the size of the thought space fundamentally reduces the overall specificity, and therefore information of classified thoughts. Current technologies are therefore limited to small information thoughts such as individual characters or cartesian coordinate movements. 
 
 
 
 ### OUR SOLUTION
+
+![image](https://lh3.googleusercontent.com/d/1pHF_ndfRTwuboz2HUKwZTqIDliUw9bTp=w1000)
 We address multimodal data source through a fusion mechanism that combines EEG and biometric signals, ensuring cross-modal alignment through adaptive attention mechanisms. This approach allows for the dynamic weighting of features based on their temporal relevance, enabling a more context-aware representation of thought states. Our preprocessing pipeline for artifact filtering and biometric indicators allows us to rapidly decrease the thought space before any post processing of our broader iterative subclustering algorithm.
 
 Temporal coherence is maintained through an iterative state space refinement process that continuously updates and optimizes the representation of thought states over time. Adaptive boundary adjustment within the vector space ensures that evolving cognitive states remain accurately classified, while real-time optimization techniques dynamically refine classification regions to account for changing neural patterns. These mechanisms contribute to a more stable and accurate thought state trajectory, reducing classification drift and enhancing system reliability.
@@ -88,63 +84,62 @@ The Synaptic Engine implements a novel approach to thought state classification 
    subject to the memory constraint:
    $$\sum_{i=1}^k |\mathcal{S}_i| \leq M_{max}$$
 
-### 2.2 Thought Processing Example (3 Iterative Subclassesifications)
-
+### 2.2 Thought Processing Architecture
 ```mermaid
-graph TD
-    subgraph "Initial Thought Space"
+graph TB
+    subgraph "Layer 1: Input Processing (100%)"
+        FC[Frequency Consolidation]
         T[Total Thought Space]
-        T --> V[Visual Domain]
-        T --> M[Motor Domain]
-        T --> A[Abstract Domain]
+        AR[Artifact Analysis/Reduction]
+        BI[Biometric Data Sources]
+        IN[Indexable cluster space]
     end
-
-    subgraph "Layer 1: Matrix Transformer"
-        V --> PP[Preprocessing: 100%]
-        M --> FC[Frequency Consolidation]
-        A --> AR[Artifact Removal]
+    
+    AR-->FC
+    T-->IN
+    IN-->MS
+    subgraph Layer2["Layer 2: Sentiment Analysis (<25%)"]
+        
+        HV["EEG Spectra Vectorization"]
+        FU[Biometric Fusion Algorithm]
+        FU-->US["User State: Mood, Stress, Cognitive Load, Arousal"]
     end
-
-    subgraph "Layer 2: Sentiment Analysis"
-        PP --> SA[Sentiment: ~22%]
-        FC --> HV[HR Variability]
-        AR --> FT[Facial Tone]
+    BI-->FU
+    FC --> HV
+    FC-->FU
+    AR --> FU
+    subgraph "Layer 3: PCA Vectorization<0.1%"
+        PE[Feature Extraction]
+        US-->MS[User Informed Thought Pruning]
     end
-
-    subgraph "Layer 3: PCA Vectorization"
-        SA --> PV[PCA: <0.1%]
-        HV --> PE[Pattern Extraction]
-        FT --> MS[Macro Structures]
-    end
-
-    subgraph "Layer 4: T-SNE/GMM"
-        PV --> TS[T-SNE: <0.1%]
-        PE --> GM[GMM Modeling]
-        MS --> PA[Probability Assignment]
-    end
-
-    subgraph "Layer 5: IHC Iteration 1"
-        TS & GM & PA --> IH1[IHC: ~12 Thoughts]
-        IH1 --> BP1[Backpropagation]
-        BP1 --> SC1[Subclass 1]
-    end
-
-    subgraph "Layer 6: IHC Iteration 2"
-        SC1 --> IH2[IHC: ~6 Thoughts]
-        IH2 --> BP2[Backpropagation]
-        BP2 --> SC2[Subclass 2]
-    end
-
-    subgraph "Layer 7: IHC Iteration 3"
-        SC2 --> IH3[IHC: <4 Thoughts]
-        IH3 --> BP3[Final Backpropagation]
-        BP3 --> FT[Final Thought State]
-    end
-
-    style T fill:#f9f,stroke:#333,stroke-width:2px,color:#000
-    style FT fill:#9f9,stroke:#333,stroke-width:2px,color:#000
+		HV --> PE
 ```
+#
+```mermaid
+graph TB
+    subgraph "Layer 4: T-SNE/GMM (<0.1%)"
+    
 
+        GM[GMM]
+        RA[Reasoning Agent]
+        RA-->CF[Dynamically Generated Probability Clusters]
+        
+    end
+    subgraph "Layer 3 Outputs"
+		PE[Pruned Thought Space Through Probability Density Hueristic] --> RA
+	    MS[Extracted EEG Features] 
+	end
+	subgraph "IHC Reduction Pipleine"
+	    SNN[Feed-Forward SNN Pipeline]
+	    end
+ 
+    GM-->CF
+    CF-->SNN
+    MS-->SNN
+    MS-->GM
+    SNN-->R[If Subcluster Size is Greater Than 3 Thoughts]-->SNN
+   ```
+   
 ### 2.2 Hierarchical Reduction Process
 
 1. Initial Space Decomposition:
@@ -155,7 +150,7 @@ graph TD
    `-- Abstract: Tertiary activation (0.2)
    ```
 
-2. Layer-wise Processing:
+2. Sentiment-wise Processing:
    ```
    Layer 1 (Sentiment) → {Valence: +0.7, Arousal: +0.4}
    |-- Visual Processing
@@ -185,26 +180,20 @@ graph TD
 ### 2.3 Feature Reduction Flow
 
 ```mermaid
-graph TD
+graph TB
     subgraph "Feature Space Metrics"
-        I[Initial Space<br>Dim: 1024 x 64<br>Processing: 100%]
-        L1[Matrix Transform<br>Dim: 512 x 32<br>Processing: 100%]
-        L2[Sentiment Analysis<br>Dim: 256 x 16<br>Processing: ~22%]
-        L3[PCA Vectorization<br>Dim: 128 x 8<br>Processing: <0.1%]
-        L4[T-SNE/GMM<br>Dim: 64 x 4<br>Processing: <0.1%]
-        L5[IHC-1<br>Dim: 32 x 2<br>Thoughts: ~12]
-        L6[IHC-2<br>Dim: 24 x 2<br>Thoughts: ~6]
-        L7[IHC-3<br>Dim: 16 x 1<br>Thoughts: <4]
+        I[Initial Space Dim: 1024 x 64 Thought Space: 100%]
+ 
+        L1[Matrix Transform Dim: 512 x 32 Thought Space: 100%]
+        L2[Sentiment Analysis Dim: 256 x 16 Though Space: <25%]
+        L3[PCA Vectorization Dim: 128 x 8 Thought Space: <0.1%]
+        L4[T-SNE/GMM Dim: 64 x 4 Thought Space: <0.1%]
+        L5[IHC-1 Dim: 32 x 2 Thoughts: <1000]
+        L6[IHC-2<br>Dim: 24 x 2 Thoughts: <20]
+        L7[IHC-3<br>Dim: 16 x 1 Thoughts: <4]
         
-        I -->|"Preprocessing"| L1
-        L1 -->|"Reduction: 78%"| L2
-        L2 -->|"Reduction: 99.9%"| L3
-        L3 -->|"GMM Modeling"| L4
-        L4 -->|"First Iteration"| L5
-        L5 -->|"Second Iteration"| L6
-        L6 -->|"Final Iteration"| L7
-    end
 
+    end
     subgraph "Information Preservation"
         I1[Raw Signal] --> L1
         I2[Clean Signal] --> L2
@@ -215,10 +204,23 @@ graph TD
         I7[Final Thought Space] --> L7
     end
 
-    style I fill:#f9f,stroke:#333,stroke-width:2px,color:#000
-    style L4 fill:#9f9,stroke:#333,stroke-width:2px,color:#000
-```
 
+        I -->|"Preprocessing"| L1
+        L1 -->|"Reduction: 78%"| L2
+        L2 -->|"Reduction: 99.9%"| L3
+        L3 -->|"GMM Modeling"| L4
+        L4 -->|"First Iteration"| L5
+        L5 -->|"Second Iteration"| L6
+        L6 -->|"Final Iteration"| L7
+        I1-->I2
+        I2-->I3
+        I3-->I4
+        
+        I4-->I5
+        I5-->I6
+        I6-->I7
+        
+```
 ### 2.4 Signal Processing Pipeline
 
 The system implements a hierarchical reduction pipeline $\mathcal{P}$ defined as:
@@ -229,7 +231,7 @@ where $\mathcal{L}_i$ represents the i-th layer transformation.
 
 Each layer achieves progressive dimensionality reduction while maintaining information density:
 
-![equation](https://latex.codecogs.com/png.image?\dpi{110}$$\text{Density}_i=\frac{\text{Information}_i}{\text{Dimension}i}\geq\text{Density}{i-1}$$)
+$$\text{Density}_i = \frac{\text{Information}_i}{\text{Dimension}_i} \geq \text{Density}_{i-1}$$
 
 where Information is measured in bits and Dimension represents feature space size.
 
@@ -287,32 +289,7 @@ $$\mathbf{f}_{\text{integrated}} = \sigma(\mathbf{W}_g[\mathbf{f}_{\text{eeg}}; 
 
 This layer implements dynamic feature extraction and autonomous subclass differentiation:
 
-#### 3.3.1 Feedforward-Dependent Vector Differentiation
-
-```mermaid
-graph TD
-    subgraph "Autonomous Differentiation Pipeline"
-        I[Input Vector] --> FF[Feedforward Analysis]
-        FF --> |"Pattern Type"| SD[Subclass Detection]
-        FF --> |"Feature Weights"| VD[Vector Differentiation]
-        
-        SD --> |"Subclass Parameters"| DM[Differentiation Matrix]
-        VD --> |"Vector Components"| DM
-        
-        DM --> VM[Vector Modification]
-        VM --> O[Output Vector]
-    end
-```
-
-The differentiation process follows:
-
-$$\mathbf{D}(\mathbf{x}, \phi) = \nabla_{\mathbf{x}}\mathcal{L}(\mathbf{x}, \phi) \cdot \mathbf{W}_{sub}(\phi)$$
-
-where $\phi$ represents feedforward patterns and $\mathbf{W}_{sub}$ is the subclass-specific weight matrix:
-
-$$\mathbf{W}_{sub}(\phi) = \text{softmax}(\text{MLP}(\phi)) \odot \mathbf{W}_{base}$$
-
-#### 3.3.2 Autonomous Vector Differentiation Process
+#### 3.3.1 Autonomous Vector Differentiation Process
 
 The vector differentiation mechanism autonomously adapts to input patterns:
 
@@ -364,7 +341,8 @@ $$\mathbf{V}_{final} = \text{Concat}([\mathbf{P}_{attn}, \mathbf{M}_{struct}])$$
 This layer creates probability density models for thought clustering:
 
 #### 3.4.1 T-SNE Embedding
-![T-SNE Cluster Visualization](frontend/public/images/tsne_clusters.png)
+![image](https://lh3.googleusercontent.com/d/1VGBizoFqqeL4V_mlAI41UauE7J_4S1z5=w1000
+)
 
 $$\mathbf{Z}_{tsne} = \text{TSNE}(\mathbf{V}_{final}, \text{perplexity}=30)$$
 
@@ -537,6 +515,7 @@ The vectorizer implements a multi-stage embedding reduction pipeline, as express
 
 2. Residual Information Transfer:  
    $\mathcal{L}_{cluster} = -\sum_{i=1}^n \log p(\mathbf{z}_i|c_i) + \alpha \cdot \text{PromptSimilarity}(\mathbf{z}_i, p)$  
+   
    where:  
    $\text{PromptSimilarity}(\mathbf{z}, p) = \text{cos}(\text{ProjectionHead}(\mathbf{z}), \text{PromptEmbed}(p))$
      
@@ -545,6 +524,7 @@ The vectorizer implements a multi-stage embedding reduction pipeline, as express
 
 4. Adaptive Feature Fusion:  
    $\mathcal{L}_{subgroup} = \sum_{g \in \mathcal{G}} \beta_g \cdot \text{ContrastiveLoss}(\mathbf{Z}_g, p)$  
+   
    where:  
    $\text{ContrastiveLoss}(\mathbf{Z}, p) = -\log \frac{\exp(\text{sim}(\mathbf{z}, p)/\tau)}{\sum_{j} \exp(\text{sim}(\mathbf{z}_j, p)/\tau)}$  
 
@@ -809,7 +789,6 @@ $$\rho_{bio} = \frac{\sum_{i=1}^n (x_i - \bar{x})(y_i - \bar{y})}{\sqrt{\sum_{i=
 This robust correlation demonstrates the effectiveness of our multimodal approach in capturing and interpreting complex thought patterns.
 
 System performance metrics significantly exceeded previous benchmarks across all key metrics. The following comparison demonstrates our improvements over baseline approaches:
-
 ```mermaid
 graph LR
     subgraph "Algorithm Performance Comparison"
@@ -827,13 +806,17 @@ graph LR
         B3["Deep Learning\nFixed Architecture\n0.65 Efficiency\nBatch Processing"] --> O3["Ours\nAdaptive Architecture\n0.87 Efficiency\nContinuous Processing"]
         B4["k-NN/Bayesian\nSimple Commands\n2.5s Latency\nLimited Context"] --> O4["Ours\nComplex Thoughts\n1.2s Latency\nFull Context"]
     end
-
+```
+```mermaid
+graph TB
     subgraph "Architectural Evolution"
         style M1 fill:#ddd,stroke:#333,stroke-width:2px,color:#000
         style M2 fill:#ddd,stroke:#333,stroke-width:2px,color:#000
         style M3 fill:#ddd,stroke:#333,stroke-width:2px,color:#000
 
-        M1["Traditional BCIs\nSingle Algorithm\nFixed Classes\nO(n) Scaling"] --> M2["SOTA 2024\nHybrid Models\nLimited States\nO(n log n) Scaling"] --> M3["Ours 2025\nHierarchical System\nInfinite States\nO(log n) Scaling"]
+        M1["Traditional BCI, Fixed Classes, O(n) Scaling"] 
+        M2["SOTA 2024 Hybrid Models Limited States O(n log n) Scaling"] 
+        M3["Ours 2025\nHierarchical System\nInfinite States\nO(log n) Scaling"]
         
         M1 -.->|"Complexity +200%\nStates ×4"| M2
         M2 -.->|"Complexity +500%\nStates →∞"| M3
@@ -841,8 +824,9 @@ graph LR
 ```
 
 #### Architectures on Iterative Hierarchical Subclustering
-```
+
 Algorithm Comparison:
+```
 - Traditional Approaches:
   * SVM/LDA: Binary classification, fixed decision boundaries
   * Neural Networks: Limited to 4-8 predefined classes
@@ -879,7 +863,7 @@ Algorithm Comparison:
     - Dynamic pattern evolution and state transitions
     - Multi-modal integration with cross-attention
     - Continuous thought stream processing
-
+```
 Iterative Feedforward Process:
 - Vector Space Evolution:
   * Previous Stage Analysis:
@@ -906,13 +890,7 @@ Iterative Feedforward Process:
     - Adjusted for subclass coherence
     - Optimized for minimal storage requirements
 
-Agent Reasoning Process:
-- Intelligent Vector Analysis:
-  * Continuous Monitoring:
-    - Track vector space topology changes
-    - Evaluate subclass coherence metrics
-    - Monitor classification confidence
-    - Assess boundary stability
+
   
   * Decision Making:
     - Determine optimal split/merge points
@@ -931,7 +909,7 @@ Agent Reasoning Process:
     - Improved classification accuracy in edge cases
     - Enhanced adaptability to new thought patterns
     - Efficient scaling with thought space complexity
-```
+
 #### 6.3.5 Information Transfer Rate Analysis
 
 The Information Transfer Rate (ITR) serves as a critical metric for evaluating BCI system performance, measuring the amount of information communicated per unit time. Traditional BCIs, limited to binary classifications, achieve only 1.2 bits/s, computed as:
@@ -949,7 +927,7 @@ $$B_{synaptic} = \frac{1}{0.05}\log_2(\infty) + 0.92\log_2(0.92) + 0.08\log_2(\f
 This theoretical upper bound is made practical through our hierarchical reduction approach and adaptive subclass formation, enabling true continuous state space classification while maintaining computational efficiency.
 
 #### 6.3.6 Classification Complexity and Scaling
-```
+
 Our approach fundamentally transforms the complexity landscape of thought classification. While traditional systems operate with fixed classes (O(1) complexity but severe limitations), and current state-of-the-art approaches achieve linear scaling (O(n)), our method realizes logarithmic complexity (O(log n)) while supporting an infinite state space. This breakthrough is achieved through our dynamic subclass formation mechanism, which intelligently adapts to the thought space topology.
 
 The system's efficiency metrics demonstrate the practical impact of this theoretical advancement:
@@ -973,7 +951,7 @@ This enhanced efficiency emerges from our system's ability to:
 - Parallel processing of thought stream components
 
 
-```
+
 
 #### 6.3.7 Benchmark Methodology and Analysis
 
@@ -1047,7 +1025,7 @@ The results demonstrate our system's substantive advantages:
 System Efficiency:
    - 99.9% reduction in computational overhead
    - 85% decrease in memory utilization
-   - Logarithmic scaling with thought complexity
+   - Logarithmic scaling WITH thought complexity
    - Adaptive resource allocation
 
 
@@ -1072,7 +1050,7 @@ These mechanisms collectively reduced inference latency by 80% compared to basel
 
 #### Benchmark Conclusions
 These metrics demonstrate Synaptic Engine's fundamental advancement in BCI technology, achieving unprecedented performance while maintaining computational efficiency. The system's ability to process complex semantic thoughts at high speeds with superior accuracy establishes a new paradigm in human-computer interaction through thought.
-This dramatic improvement in both thought complexity and processing efficiency establishes Synaptic Engine as a fundamental breakthrough in BCI technology, enabling previously impossible applications in human-computer interaction through thought.
+This dramatic improvement in both thought complexity and processing efficiency establishes Synaptic Engine as a fundamental breakthrough in BCI technology, enabling previously impossible applications in human-computer interaction through thought with seamless and realtime computation. .
 
 ## 7. Thought Space Scaling Analysis
 
