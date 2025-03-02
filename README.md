@@ -1,5 +1,5 @@
 # Synaptic Engine: A Hierarchical Neural Processing Framework for Multi-Modal Thought Space Computation
-<img src="https://lh3.googleusercontent.com/d/1W5w8ApQvpG0CGYgmMOSPsbP3Nsb2zhcp=w1000" width="300">
+<img src="https://lh3.googleusercontent.com/d/1W5w8ApQvpG0CGYgmMOSPsbP3Nsb2zhcp=w1000" width="1000">
 
 ## Abstract
 
