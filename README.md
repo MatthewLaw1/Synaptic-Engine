@@ -1,5 +1,7 @@
 # Synaptic Engine: A Hierarchical Neural Processing Framework for Multi-Modal Thought Space Computation
 ![image](  https://lh3.googleusercontent.com/d/1W5w8ApQvpG0CGYgmMOSPsbP3Nsb2zhcp=w1000)
+<img src="(https://lh3.googleusercontent.com/d/1W5w8ApQvpG0CGYgmMOSPsbP3Nsb2zhcp=w1000)" width="100">
+
 ## Abstract
 
 ### The highest Information Transfer Rate ever recorded for non-invasive BCIs
@@ -21,7 +23,7 @@ We successfully piloted the architecture with a thought space of 99,900,000 thou
 
 ### Problem Formulation
 
-The challenge of thought state classification in brain-computer interfaces has traditionally been constrained by fixed classification boundaries and discrete state spaces. This limits both the number of thought, and the specificity and information density of thought identification. Given an input space $\mathcal{X} = \{\mathbf{x}_i\}_{i=1}^n$ comprising EEG signals $\mathbf{E} \in \mathbb{R}^{c \times t}$ and biometric signals $\mathbf{B} \in \mathbb{R}^{d}$, we aim to compute a continuous thought state mapping $f: \mathcal{X} \rightarrow \mathcal{T}$ where $\mathcal{T}$ represents a hyper-dimensional thought space manifold. This manifold scales to theoretical maximums of all possible thoughts of structure A∘q(B), where A and B are objects and q is an action applied to B (Cat(A) "sits on(q)" table(B)). The mapping of related thoughts must adapt dynamically to evolving thought patterns while maintaining computational efficiency. Set clusters cannot efficiently identify similar thought groups for thoughts that are similar in vector space to multiple thought groups but not any one specifically. Thus, revectorization is required to both accurately identify these forms of hyper-specific thought, as well as optimally reducing the thought space by dropping all low probability subclusters and even improbable objects within those clusters.
+The challenge of thought state classification in brain-computer interfaces has traditionally been constrained by fixed classification boundaries and discrete state spaces. This limits both the number of thought, and the specificity and information density of thought identification. Given an input space comprising EEG signals and biometric signals, we aim to compute a continuous thought state mapping that represents a hyper-dimensional thought space manifold. This manifold scales to theoretical maximums of all possible thoughts of structure A∘q(B), where A and B are objects and q is an action applied to B (Cat(A) "sits on(q)" table(B)). The mapping of related thoughts must adapt dynamically to evolving thought patterns while maintaining computational efficiency. Set clusters cannot efficiently identify similar thought groups for thoughts that are similar in vector space to multiple thought groups but not any one specifically. Thus, revectorization is required to both accurately identify these forms of hyper-specific thought, as well as optimally reducing the thought space by dropping all low probability subclusters and even improbable objects within those clusters.
 
 ### Technical Significance
 
