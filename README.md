@@ -1,5 +1,5 @@
 # Synaptic Engine: A Hierarchical Neural Processing Framework for Multi-Modal Thought Space Computation
-
+## \#1 Highest Information Transfer Rate as of March 2025, 99.9M thoughts in thought Space
 ## Abstract (See whitepaper PDF for extended writeup)
 
 ### The Highest Semantic Information Transfer Rate ever recorded for non-invasive BCIs
