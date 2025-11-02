@@ -1,4 +1,5 @@
 # Synaptic Engine: A Hierarchical Neural Processing Framework for Multi-Modal Thought Space Computation
+# A Joint Project with Matthew Law, Vihaan Mathur and Angad Bhargav
 ## \#1 Highest Information Transfer Rate as of March 2025, 99.9M thoughts in thought Space
 ## Abstract (See whitepaper PDF for extended writeup)
 
